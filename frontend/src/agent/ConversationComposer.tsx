@@ -4,12 +4,21 @@ export const ConversationComposer = memo(function ConversationComposer({
   pending,
   disabled,
   onSend,
+  sessionId,
+  draftStore,
 }: {
   pending: boolean
   disabled: boolean
   onSend: (text: string) => Promise<boolean>
+  sessionId: string
+  draftStore?: Map<string, string>
 }) {
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState(() => draftStore?.get(sessionId) ?? '')
+  function updateDraft(value: string) {
+    setDraft(value)
+    if (value) draftStore?.set(sessionId, value)
+    else draftStore?.delete(sessionId)
+  }
   const inputRef = useRef<HTMLInputElement>(null)
   const submitting = useRef(false)
   const submitted = useRef(false)
@@ -23,9 +32,9 @@ export const ConversationComposer = memo(function ConversationComposer({
     if (!text || pending || disabled || submitting.current) return
     submitting.current = true
     submitted.current = true
-    setDraft('')
+    updateDraft('')
     try {
-      if (!(await onSend(text))) setDraft(text)
+      if (!(await onSend(text))) updateDraft(text)
     } finally {
       submitting.current = false
     }
@@ -47,7 +56,7 @@ export const ConversationComposer = memo(function ConversationComposer({
           placeholder={
             pending ? 'Waiting for GuardMate…' : 'Type your delivery question…'
           }
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => updateDraft(event.target.value)}
         />
         <button
           className="button primary"

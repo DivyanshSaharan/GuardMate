@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class StrictModel(BaseModel):
@@ -73,6 +73,7 @@ class AgentEvent(BaseModel):
 
 class Conversation(BaseModel):
     id: str
+    courier_label: str = ""
     status: Literal["active", "awaiting_approval", "needs_resident", "ended"] = "active"
     facts: ParcelFacts = Field(default_factory=ParcelFacts)
     messages: list[Message] = Field(default_factory=list)
@@ -85,6 +86,34 @@ class Conversation(BaseModel):
     revision: int = 0
     pending_question: Literal["prepaid", "guard_available", "alternative_location"] | None = None
     dialogue_version: int = 0
+
+
+class StartRequest(StrictModel):
+    courier_label: str = Field(default="", max_length=80)
+
+    @field_validator("courier_label")
+    @classmethod
+    def trim_label(cls, value: str) -> str:
+        return value.strip()
+
+
+class ConversationSummary(BaseModel):
+    id: str
+    courier_label: str
+    status: Literal["active", "awaiting_approval", "needs_resident", "ended"]
+    created_at: datetime
+    turn_count: int
+    revision: int
+    has_pending_approval: bool
+
+    @classmethod
+    def from_conversation(cls, session: Conversation) -> "ConversationSummary":
+        return cls(
+            **session.model_dump(
+                include={"id", "courier_label", "status", "created_at", "turn_count", "revision"}
+            ),
+            has_pending_approval=bool(session.approval and session.approval.status == "pending"),
+        )
 
 
 class TurnRequest(StrictModel):

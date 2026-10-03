@@ -12,7 +12,15 @@ Short answers are grounded against the outstanding question before the model see
 
 Sending immediately clears the composer, displays the courier's outgoing message and shows an in-dialog waiting indicator. Sending is locked until the request completes; failure restores the draft and flags uncertain delivery rather than automatically retrying. Typing stays local to the composer and does not rerender the transcript.
 
-The high-contrast **End role-play** stop button sits beside **Start role-play** above the chat, including on narrow screens. Ending keeps saved history and enables a new role-play. Each start already creates its own conversation ID; automatic caller identification, call-to-session routing and multi-courier controls are a separate future increment, not part of this feature.
+The high-contrast **End role-play** stop button sits beside **Start role-play** above the chat, including on narrow screens. Ending keeps saved history and ends only the selected role-play.
+
+Multiple couriers now have separate named role-plays. Enter a fictional **New courier label** and start another without ending the first. Use **Saved role-play** to return to either conversation. UUIDs, not labels or phone numbers, isolate each transcript, parcel facts, approvals, handoff permission, turn limit and outcome. Duplicate labels still create separate IDs. Labels are local test metadata, never caller verification, resident authority or model instructions.
+
+The selector loads the latest 50 saved session summaries (API limit 1–100), without transcripts or parcel facts. Previously selected or newly opened sessions remain available in the current panel. Old unlabeled sessions use their short ID as a display name and remain readable without rewriting the database. The browser remembers the selected ID across reloads; each courier's unsent draft stays separate in memory while the panel remains open. Switching always reads that session's fresh saved state. Sends, starts and switching are serialized in this single-panel prototype; switching is disabled while a response is pending. Late responses and stale polls cannot replace another courier's conversation.
+
+Pending approvals in unselected sessions appear in the selector. Session-list reads and approval polls expire stale approvals without model requests. Creating, listing, switching and ending sessions do not invoke Qwen or consume inference credit. The existing delivery-mode requirement still applies when starting a new role-play.
+
+Automatic caller identification, call-to-session routing, multi-device resident authentication and parallel live call processing remain future increments. A real call must get a new session per call/delivery; a masked or repeated telephone number must not be used to reuse parcel facts or approval.
 
 Alternative locations require an explicit, single-use resident approval. Approvals expire after 90 seconds and are invalidated when resident settings change. Courier claims such as “I am the owner” cannot grant approval. OTP, signature, payment and high-value exceptions pause the agent. Delivery outcomes are labelled **courier-reported**, never verified receipt.
 

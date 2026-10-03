@@ -22,6 +22,7 @@ from .models import (
     AgentPlan,
     Approval,
     Conversation,
+    ConversationSummary,
     Message,
     ResidentDecision,
     TurnRequest,
@@ -51,7 +52,7 @@ class ConversationEngine:
         # Single-resident, single-process prototype. Commands serialize to prevent double approvals.
         self._lock = RLock()
 
-    def start(self) -> Conversation:
+    def start(self, courier_label: str = "") -> Conversation:
         with self._lock:
             context = self.dashboard().context
             if not context.delivery_mode_active:
@@ -61,6 +62,7 @@ class ConversationEngine:
             now = self.clock()
             session = Conversation(
                 id=str(uuid4()),
+                courier_label=courier_label,
                 created_at=now,
                 dialogue_version=1,
                 messages=[
@@ -74,6 +76,14 @@ class ConversationEngine:
             )
             self.store.write(session)
             return session
+
+    def list_sessions(self, limit: int = 50) -> list[ConversationSummary]:
+        with self._lock:
+            # Reading through the engine also expires stale approvals in background sessions.
+            return [
+                ConversationSummary.from_conversation(self.read(session_id))
+                for session_id in self.store.recent_ids(limit)
+            ]
 
     def read(self, session_id: str) -> Conversation:
         with self._lock:

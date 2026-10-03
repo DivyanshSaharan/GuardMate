@@ -13,6 +13,43 @@
   color: #477253;
   margin: 10px 0;
 }
+.session-controls {
+  margin-top: 20px;
+}
+.session-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.session-fields label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  font-size: 11px;
+}
+.session-fields select,
+.session-fields input {
+  width: 100%;
+  min-width: 0;
+  font-size: 11px;
+}
+.session-note {
+  margin-top: 12px;
+}
+.selected-session {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 0 0 12px;
+}
+.selected-session h3 {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.selected-session > span {
+  font-size: 10px;
+}
 .lab-actions {
   display: flex;
   flex-wrap: wrap;
@@ -222,6 +259,9 @@
   margin-top: 15px;
 }
 @media (max-width: 680px) {
+  .session-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .conversation-lab-body {
     padding: 18px;
   }

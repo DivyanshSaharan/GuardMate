@@ -1,7 +1,9 @@
-import { memo, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { AgentTrace } from './AgentTrace'
 import { ConversationTranscript } from './ConversationTranscript'
 import { ResidentControls } from './ResidentControls'
+import { SessionControls } from './SessionControls'
+import { sessionName } from './sessionState'
 import { useConversation } from './useConversation'
 import './conversation.css'
 
@@ -9,15 +11,17 @@ function RolePlay() {
   const {
     model,
     conversation,
+    sessions,
+    initializing,
     pending,
     error,
     start,
+    selectSession,
     send,
     decide,
     refresh,
-    checkModel,
   } = useConversation()
-  const active = conversation && conversation.status !== 'ended'
+  const drafts = useRef(new Map<string, string>())
   return (
     <div className="conversation-lab-body">
       <p className="muted">
@@ -36,47 +40,35 @@ function RolePlay() {
         Qwen plans the next action; GuardMate renders the checked reply. This is
         the base model, not a fine-tuned one yet.
       </p>
-      <div className="lab-actions" role="group" aria-label="Role-play controls">
-        <button
-          className="button secondary"
-          disabled={pending || !model?.configured || !!active}
-          onClick={() => void start()}
-        >
-          Start role-play
-        </button>
-        <button
-          className="button role-play-end"
-          disabled={pending || !active}
-          title="End this test conversation. Saved history is kept."
-          onClick={() => void decide('end')}
-        >
-          <span className="stop-mark" aria-hidden="true" />
-          End role-play
-        </button>
-        <button
-          className="text-button"
-          disabled={pending}
-          onClick={() => void (conversation ? refresh() : checkModel())}
-        >
-          Refresh status
-        </button>
-        {conversation && (
-          <span className="muted">
-            {conversation.status.replaceAll('_', ' ')} ·{' '}
-            {conversation.turn_count}/20 turns
-          </span>
-        )}
-      </div>
+      <SessionControls
+        sessions={sessions}
+        conversation={conversation}
+        pending={pending}
+        initializing={initializing}
+        configured={model?.configured ?? false}
+        onStart={start}
+        onSelect={selectSession}
+        onEnd={() => decide('end')}
+        onRefresh={refresh}
+      />
       <div className="lab-error" role={error ? 'alert' : undefined}>
         {error}
       </div>
       {conversation && (
         <>
+          <div className="selected-session" aria-label="Selected courier">
+            <h3>{sessionName(conversation)}</h3>
+            <span className="muted">
+              Role-play {conversation.id.slice(0, 8)}
+            </span>
+          </div>
           <div className="conversation-grid">
             <ConversationTranscript
+              key={conversation.id}
               conversation={conversation}
               pending={pending}
               onSend={send}
+              draftStore={drafts.current}
             />
             <ResidentControls
               conversation={conversation}

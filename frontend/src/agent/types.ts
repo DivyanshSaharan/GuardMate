@@ -10,6 +10,7 @@ export interface ModelStatus {
 
 export interface Conversation {
   id: string
+  courier_label?: string
   status: 'active' | 'awaiting_approval' | 'needs_resident' | 'ended'
   facts: {
     prepaid: boolean | null
@@ -47,3 +48,13 @@ export interface Conversation {
 }
 
 export type ResidentDecision = 'approve' | 'decline' | 'takeover' | 'end'
+
+export interface ConversationSummary {
+  id: string
+  courier_label: string
+  status: Conversation['status']
+  created_at: string
+  turn_count: number
+  revision: number
+  has_pending_approval: boolean
+}

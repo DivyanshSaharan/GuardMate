@@ -7,10 +7,12 @@ export const ConversationTranscript = memo(function ConversationTranscript({
   conversation,
   pending,
   onSend,
+  draftStore,
 }: {
   conversation: Conversation
   pending: boolean
   onSend: (text: string) => Promise<boolean>
+  draftStore?: Map<string, string>
 }) {
   const [outgoing, setOutgoing] = useState<{
     text: string
@@ -81,7 +83,13 @@ export const ConversationTranscript = memo(function ConversationTranscript({
             ? 'Agent paused. The resident must handle the next step.'
             : 'You’re playing the courier. Use fictional details only.'}
       </div>
-      <ConversationComposer pending={pending} disabled={paused} onSend={send} />
+      <ConversationComposer
+        pending={pending}
+        disabled={paused}
+        onSend={send}
+        sessionId={conversation.id}
+        draftStore={draftStore}
+      />
     </div>
   )
 })

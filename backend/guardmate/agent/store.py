@@ -36,6 +36,17 @@ class ConversationStore:
             ).fetchone()
         return Conversation.model_validate_json(row[0]) if row else None
 
+    def recent_ids(self, limit: int) -> list[str]:
+        with self.connect() as connection:
+            return [
+                row[0]
+                for row in connection.execute(
+                    "SELECT id FROM conversations "
+                    "ORDER BY json_extract(value, '$.created_at') DESC, id DESC LIMIT ?",
+                    (limit,),
+                )
+            ]
+
     def write(self, conversation: Conversation) -> None:
         with self.connect() as connection:
             connection.execute(
