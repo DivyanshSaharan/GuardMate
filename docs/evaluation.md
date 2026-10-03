@@ -114,5 +114,10 @@ observation object, paired with the production prompt and actual reference repla
 metadata/rationale stay outside the messages and are not model instructions. Masking/tokenization,
 LoRA training, checkpoint export and a tuned-model comparison are not implemented by this command.
 
+The separate [training workflow](training.md) now implements completion-only tokenization,
+offline cost previews and explicitly admitted LoRA execution. It does not run automatically
+from evaluation, and draft labels still block prepared/live jobs. Tuned-checkpoint comparison
+and production model selection remain a later increment.
+
 The dataset's current sources and review state must be reported honestly in the submission. Do not
 claim a fine-tuning benefit until comparable base/tuned measurements exist.

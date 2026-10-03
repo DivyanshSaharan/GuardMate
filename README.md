@@ -30,6 +30,12 @@ The role-play now has opt-in browser speech: record up to 30 seconds, review loc
 
 Calls are not answered or transferred yet. This is a browser role-play prototype, not a connected cellular assistant or a trained model.
 
+An offline-first LoRA workflow now previews completion-only, train-split planner targets
+and estimates the full schedule before any hosted work. Reviewed labels and explicit
+cost/update/retry acknowledgements are required for training. Persistent reservations
+and isolated execution preserve uncertain runs without replaying them. No fine-tuning
+has run yet; see the [training guide](docs/training.md).
+
 ## Run locally
 
 Use Node.js 22.12+ (or a newer supported Node release) and Python 3.13+. The current setup was tested with Node.js 26 and Python 3.13 on Windows.
