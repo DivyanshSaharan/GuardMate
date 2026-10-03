@@ -108,6 +108,24 @@ The dialogue regression separately replays the reported repeated-question sequen
 
 The model produces a typed dialogue plan, not arbitrary courier-facing text. Permission-sensitive replies are composed from saved facts and checked actions. Positive parcel/guard observations need an exact courier quote plus a conservative English confirmation check. Such a quote is not proof the courier is telling the truth. The English checks can reject valid phrasing or miss unusual phrasing; the model is also fallible. Broad adversarial, speech and real-device tests are still required before automatic live use. Approval timeout is checked by the backend, not by a browser timer.
 
+## Dataset and baseline evaluation
+
+The repository now includes fictional multi-turn delivery seeds and an offline-first evaluation
+runner. It validates provenance/split boundaries, replays authored reference plans separately from
+real model inference, and scores Qwen's proposed plans separately from application-checked replies.
+Reference replay is **not a model baseline**. Draft/unresolved data cannot silently become training
+targets. Live sampling requires explicit call/cost limits and shares the existing $0.25 ledger.
+
+Start free with `.venv\Scripts\python backend\scripts\evaluate_delivery.py`.
+See [the evaluation guide](docs/evaluation.md) and [dataset card](datasets/delivery/DATASET_CARD.md)
+for commands, provenance, deliberate failure probes, metric definitions and training-export boundaries.
+
+The first real, untuned [validation baseline](docs/baseline-2026-10-03.md) completed six scenarios
+and 13 model turns: 4/6 checked scenarios passed and 7/13 plans matched the strict reference rubric.
+These are small draft-seed development results, not fine-tuning improvement or field effectiveness.
+The [cellular preflight](docs/cellular-feasibility.md) documents why the current WSL setup is not
+ready for the two-way phone-audio proof; no driver/pairing setup was performed.
+
 ## Planned AI stack
 
 - Qwen3.5-4B with supervised LoRA training through Tinker (currently using the untuned base model).
