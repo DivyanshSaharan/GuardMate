@@ -1,3 +1,4 @@
+import { ConversationLab } from './agent/ConversationLab'
 import { AvailabilityCard } from './components/AvailabilityCard'
 import { DeliveryModeCard } from './components/DeliveryModeCard'
 import { InstructionPreview } from './components/InstructionPreview'
@@ -56,6 +57,7 @@ function DashboardScreen() {
           pending={pending.profile}
           onSave={saveProfile}
         />
+        <ConversationLab />
       </main>
       <Footer />
     </div>

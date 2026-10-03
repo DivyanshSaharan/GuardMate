@@ -811,7 +811,10 @@ select {
     border-radius: 10px;
   }
   .header nav {
-    gap: 17px;
+    gap: 8px 14px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 180px;
     font-size: 10px;
   }
   .hero {
@@ -848,7 +851,7 @@ select {
     font-size: 9px;
   }
   .today-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 13px;
   }
   .card {
@@ -950,6 +953,16 @@ select {
     max-width: 140px;
     text-align: right;
     line-height: 1.65;
+  }
+}
+@media (max-width: 360px) {
+  .choice {
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px 5px;
+    font-size: 10px;
+    white-space: normal;
+    min-height: 58px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

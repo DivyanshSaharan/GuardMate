@@ -18,6 +18,7 @@ export const Header = memo(function Header() {
           Today
         </a>
         <a href="#preferences">Your preferences</a>
+        <a href="#conversation">Test agent</a>
       </nav>
       <span className="private-label">
         <Icon name="shield" size={15} /> Saved on your device

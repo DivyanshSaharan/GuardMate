@@ -2,12 +2,13 @@ export async function request<T>(
   path: string,
   payload?: unknown,
   signal?: AbortSignal,
+  method?: 'GET' | 'POST' | 'PUT',
 ): Promise<T> {
   let response: Response
   try {
     response = await fetch(`/api${path}`, {
       signal,
-      method: payload === undefined ? 'GET' : 'PUT',
+      method: method ?? (payload === undefined ? 'GET' : 'PUT'),
       headers:
         payload === undefined
           ? undefined

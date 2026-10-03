@@ -5,8 +5,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 
+from .agent.engine import ConversationEngine
+from .agent.provider import PlanProvider, TinkerProvider
+from .agent.routes import build_router
+from .agent.store import ConversationStore
 from .context import build_context
 from .models import Dashboard, DeliveryMode, OverrideRequest, ResidentProfile, TodayOverride
 from .store import PreferenceStore
@@ -15,8 +20,10 @@ from .store import PreferenceStore
 def create_app(
     data_dir: Path | None = None,
     clock: Callable[[], datetime] | None = None,
+    provider: PlanProvider | None = None,
 ) -> FastAPI:
     root = Path(__file__).resolve().parents[2]
+    load_dotenv(root / ".env", override=False)
     storage_dir = data_dir or Path(os.environ.get("GUARDMATE_DATA_DIR", str(root / ".data")))
     current_time = clock or (lambda: datetime.now(UTC))
 
@@ -81,6 +88,14 @@ def create_app(
         application.state.store.write("delivery_mode", mode)
         return dashboard()
 
+    conversation_store = ConversationStore(storage_dir)
+    engine = ConversationEngine(
+        conversation_store,
+        provider or TinkerProvider(conversation_store),
+        dashboard,
+        current_time,
+    )
+    application.include_router(build_router(engine))
     return application
 
 
