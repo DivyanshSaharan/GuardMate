@@ -10,6 +10,8 @@ The text role-play panel now runs Qwen3.5-4B through Tinker. The model plans eac
 
 Short answers are grounded against the outstanding question before the model sees the updated conversation. “Don't know” and “let me check” preserve that question and get a waiting acknowledgment, not another copy of the question. Known facts cannot be erased or re-asked by an omitted model observation or stale clarification. Old role-play sessions recover clear answers from their saved transcript on the next turn. The trace distinguishes Qwen's proposed action from the application action actually executed.
 
+The English grounding checks recognize `pre paid` and `pre-paid`, including tested negative and uncertain forms. Positive model observations must also be supported by the surrounding assertion, not a quoted positive word stripped of its negation or uncertainty. After an authorized handoff, `I gave it to the guard.` can record a courier-reported delivery; tested future plans, questions, negated reports and unrelated guard activities cannot. These are limited application-checker regressions, not model training or general language-understanding guarantees.
+
 Sending immediately clears the composer, displays the courier's outgoing message and shows an in-dialog waiting indicator. Sending is locked until the request completes; failure restores the draft and flags uncertain delivery rather than automatically retrying. Typing stays local to the composer and does not rerender the transcript.
 
 The high-contrast **End role-play** stop button sits beside **Start role-play** above the chat, including on narrow screens. Ending keeps saved history and ends only the selected role-play.
@@ -118,7 +120,7 @@ targets. Live sampling requires explicit call/cost limits and shares the existin
 
 Start free with `.venv\Scripts\python backend\scripts\evaluate_delivery.py`.
 See [the evaluation guide](docs/evaluation.md) and [dataset card](datasets/delivery/DATASET_CARD.md)
-for commands, provenance, deliberate failure probes, metric definitions and training-export boundaries.
+for commands, provenance, wording regression probes, metric definitions and training-export boundaries.
 
 The first real, untuned [validation baseline](docs/baseline-2026-10-03.md) completed six scenarios
 and 13 model turns: 4/6 checked scenarios passed and 7/13 plans matched the strict reference rubric.

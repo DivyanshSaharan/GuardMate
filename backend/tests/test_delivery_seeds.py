@@ -21,12 +21,12 @@ def test_repository_dataset_provenance_and_splits():
     assert not dataset_summary(DATASET, scenarios)["cross_split_similarity_warnings"]
 
 
-def test_reference_replay_preserves_known_checker_failures_only():
+def test_reference_replay_including_wording_regressions_passes():
     report = run_evaluation(load_dataset(DATASET), GoldPlanProvider(), "oracle")
     assert not report["skipped_scenario_ids"]
     failures = {case["id"] for case in report["results"] if not case["passed"]}
-    assert failures == {"train-language-spaced-prepaid", "train-language-gave-to-guard"}
-    assert report["summary"]["reference_replay_success"]["count"] == 25
+    assert failures == set()
+    assert report["summary"]["reference_replay_success"]["count"] == 27
     assert "model_plan_rubric_match" not in report["summary"]
 
 

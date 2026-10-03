@@ -6,6 +6,7 @@ from typing import Literal
 from .models import Conversation, Observation, ParcelFacts
 
 Question = Literal["prepaid", "guard_available", "alternative_location"]
+PREPAID_TERM = r"pre(?:[\s\u2010-\u2015-]+)?paid"
 
 QUESTIONS: dict[Question, str] = {
     "prepaid": "Is this parcel already paid for?",
@@ -44,12 +45,19 @@ def confirmation(field: str, evidence: str, question: Question | None) -> bool |
         return None
     if field == "prepaid":
         if re.search(
-            r"\b(not (?:prepaid|already paid|paid for)|unpaid|cod|cash on delivery)\b", lowered
+            rf"\b(?:(?:not|isn't|wasn't|hasn't|haven't)"
+            rf"(?:\s+(?:yet|actually|really|been|fully))*\s+"
+            rf"(?:{PREPAID_TERM}|already paid|paid for)|unpaid|cod|cash on delivery)\b",
+            lowered,
         ):
             return False
-        if re.search(r"\b(prepaid|already paid|paid for)\b", lowered):
+        if re.search(rf"\b({PREPAID_TERM}|already paid|paid for)\b", lowered):
             # 'not sure whether prepaid' is not a confirmation.
-            if re.search(r"\b(not sure|don't know|do not know|is it|whether|if)\b", lowered):
+            if re.search(
+                r"\b(not sure|don't know|do not know|unsure|uncertain|"
+                r"can't confirm|cannot confirm|is it|whether|if)\b",
+                lowered,
+            ):
                 return None
             return True
     else:
@@ -81,6 +89,77 @@ def confirmation(field: str, evidence: str, question: Question | None) -> bool |
     return None
 
 
+def evidence_context(text: str, evidence: str) -> str:
+    """Include surrounding negation/uncertainty, not just a cherry-picked positive word."""
+    lowered, quote = normalize(text), normalize(evidence)
+    start = lowered.find(quote)
+    if start < 0:
+        return ""
+    end = start + len(quote)
+    boundaries = ".!?\n"
+    left = max((lowered.rfind(mark, 0, start) for mark in boundaries), default=-1) + 1
+    if quote and quote[-1] in boundaries:
+        right = end
+    else:
+        endings = [position for mark in boundaries if (position := lowered.find(mark, end)) >= 0]
+        right = min(endings) + 1 if endings else len(lowered)
+    return lowered[left:right]
+
+
+def is_completed_outcome(text: str, outcome: str) -> bool:
+    """Conservative English caller-report check, never evidence of verified physical receipt."""
+    lowered = normalize(text)
+    # Quoted instructions/examples cannot masquerade as the courier's own report.
+    unquoted = re.sub(r'"[^"\n]*"|“[^”\n]*”|(?<!\w)[\'‘][^\'’\n]*[\'’](?!\w)', "", lowered)
+    if re.search(
+        r"\b(will|going to|about to|might|may|maybe|would|should|unsure|uncertain|if|whether|"
+        r"suppose|pretend|"
+        r"say|said|haven't|have not|hasn't|has not|didn't|did not|don't|do not|"
+        r"wasn't|weren't|isn't|aren't|not yet)\b",
+        unquoted,
+    ):
+        return False
+    if re.search(r"\bcould\b", unquoted) and not (
+        outcome == "could_not_deliver" and re.search(r"\bcould not deliver\b", unquoted)
+    ):
+        return False
+    for match in re.finditer(r"([^.!?\n]+)([.!?]|$)", unquoted):
+        clause, punctuation = match.groups()
+        clause = clause.strip()
+        if punctuation == "?":
+            continue
+        parcel = bool(re.search(r"\b(parcel|package|box|bag|envelope|kit|it)\b", clause))
+        if outcome == "could_not_deliver":
+            if re.search(r"\b(could not deliver|couldn't deliver)\b", clause):
+                if parcel or re.fullmatch(r"(?:i )?(?:could not|couldn't) deliver", clause):
+                    return True
+            continue
+        if re.search(r"\b(not|never|no|nobody|none)\b", clause):
+            continue
+        if outcome == "returned":
+            if re.search(r"\breturned\b", clause) and (parcel or clause == "returned"):
+                return True
+        elif outcome == "delivered":
+            gave = re.search(
+                r"\b(?:i|we) gave (?:it|(?:the|this|your|that) (?:parcel|package|box|bag)) "
+                r"to (?:the )?(?:guard|security(?: guard)?)\b",
+                clause,
+            )
+            # Bind the completion verb to the parcel object, not an unrelated guard activity.
+            parcel_object = r"(?:parcel|package|box|bag|envelope|kit|it)"
+            completed = re.search(
+                rf"\b(?:delivered|handed|accepted|received)\s+(?:over\s+)?"
+                rf"(?:(?:the|this|your|that|my|our|a|an|first|second)\s+)*"
+                rf"(?:(?:sealed|small|large|fragile|meal)\s+){{0,2}}{parcel_object}\b"
+                rf"|\b{parcel_object}\s+(?:(?:was|were|is|are|has|have|had|been|already)\s+)*"
+                rf"(?:delivered|handed|accepted|received)\b",
+                clause,
+            )
+            if gave or completed or clause == "delivered":
+                return True
+    return False
+
+
 def observe_courier(session: Conversation, text: str) -> bool:
     """Commit clear answers BEFORE the model sees context. Return whether caller is checking."""
     question = session.pending_question
@@ -108,6 +187,16 @@ def apply_model_observation(session: Conversation, observation: Observation, tex
         value = getattr(observation, field)
         if value is None or confirmation(field, evidence, session.pending_question) != value:
             continue
+        if value is True:
+            context = evidence_context(text, evidence)
+            assertions = re.findall(r"[^.!?\n]+(?:[.!?]|$)", context)
+            confirmations = [
+                confirmation(field, assertion, session.pending_question) for assertion in assertions
+            ]
+            # An unrelated later question must not erase a complete factual assertion. Keep
+            # qualifiers around a partial quote, and reject conflicting negative assertions.
+            if True not in confirmations or False in confirmations:
+                continue
         if field != "prepaid" or session.facts.prepaid is not False:
             setattr(session.facts, field, value)
         if field == "guard_available" and value is False:

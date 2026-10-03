@@ -44,7 +44,10 @@ It is not a sampling run and does not report baseline success.
 `--oracle` feeds the authored reference plans through the real conversation engine in temporary
 databases. It checks rubric/engine behavior and exposes policy/checker limitations. It is explicitly
 labelled **not a model**, and oracle percentages/latencies must not be reported as Qwen performance.
-Expected language-probe failures remain failures; do not weaken their rubrics to make the report green.
+The original two language-probe failures were fixed independently in the application checker;
+the unchanged reference suite now passes all 27 scenarios. Do not weaken rubrics to make a report
+green or report this checker regression result as a model improvement. The original real-model
+baseline remains historical; rerun base and tuned models under the same checker for a comparison.
 
 ## Run an explicitly bounded real baseline
 
@@ -104,7 +107,7 @@ Only reviewed `train` seeds with a completely successful reference replay may be
 .venv\Scripts\python backend\scripts\evaluate_delivery.py --oracle --split train --export-training .data/evaluation/train-targets.jsonl
 ```
 
-Draft seeds and unresolved reference/checker failures deliberately block this command. Review the
+Draft seeds and any unresolved reference/checker failures deliberately block this command. Review the
 policy labels, fix application defects separately, then explicitly update review status. Exporting
 validation/test cases as training is refused. The target is typed planner JSON, always including an
 observation object, paired with the production prompt and actual reference replay history. Scenario

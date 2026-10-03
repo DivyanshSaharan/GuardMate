@@ -12,6 +12,7 @@ from ..models import Availability, Dashboard
 from .dialogue import (
     QUESTIONS,
     apply_model_observation,
+    is_completed_outcome,
     is_waiting,
     observe_courier,
     question_from_reply,
@@ -267,13 +268,7 @@ class ConversationEngine:
         elif plan.action == "handoff":
             self._handoff(session, plan, dashboard)
         elif plan.action == "record_outcome":
-            reported = bool(
-                re.search(
-                    r"\b(delivered|handed|accepted|received|returned|"
-                    r"could not deliver|couldn't deliver)\b",
-                    text.casefold(),
-                )
-            ) and not bool(re.search(r"\b(will|going to|haven't|not yet)\b", text.casefold()))
+            reported = is_completed_outcome(text, plan.outcome)
             if not reported:
                 self._reply(
                     session,
