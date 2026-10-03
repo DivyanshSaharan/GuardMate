@@ -26,7 +26,9 @@ Automatic caller identification, call-to-session routing, multi-device resident 
 
 Alternative locations require an explicit, single-use resident approval. Approvals expire after 90 seconds and are invalidated when resident settings change. Courier claims such as “I am the owner” cannot grant approval. OTP, signature, payment and high-value exceptions pause the agent. Delivery outcomes are labelled **courier-reported**, never verified receipt.
 
-Calls are not answered or transferred yet. This is a text conversation prototype, not a connected cellular assistant or a trained model.
+The role-play now has opt-in browser speech: record up to 30 seconds, review local Whisper transcription before sending, and explicitly play the latest checked reply with local Piper. Recording/playback are mutually exclusive and stay isolated across sessions. Speech workers use temporary audio, bounded CPU jobs and no model API credentials. Qwen planning remains hosted and untuned. See [browser voice setup and measured limits](docs/browser-voice.md).
+
+Calls are not answered or transferred yet. This is a browser role-play prototype, not a connected cellular assistant or a trained model.
 
 ## Run locally
 
@@ -91,7 +93,7 @@ Copy `.env.example` to `.env` and enter your own `TINKER_API_KEY` there. Restart
 
 Save your preferences, enable a delivery window and open **Try a delivery conversation → Open text role-play**. Use fictional data. You play the courier; the **Your decision** panel is the resident's separate approval channel. The panel shows the transcript, executed actions, model/policy latency and estimated usage reserved. Reloading restores the role-play ID from browser storage and its conversation from SQLite.
 
-Hosted inference is **not offline or private to your laptop**: saved resident context and role-play messages go to Tinker. Only tokenizer files are downloaded locally in this increment, not the model weights. Local model inference and speech are later milestones.
+Hosted inference is **not offline or private to your laptop**: saved resident context and role-play messages go to Tinker. Only Qwen tokenizer files are downloaded locally, not the Qwen weights. Optional speech models run locally; local Qwen inference remains a later milestone.
 
 Each model request is limited to 12,000 input tokens and 512 output tokens. A SQLite ledger reserves estimated worst-case cost before submission and refuses requests above a cumulative **$0.25 test-stage cap**. Failed/timed-out requests remain reserved, and invalid plans are not automatically retried. This is a conservative token-price estimate, not your account's actual billing balance or a provider-enforced spending limit. It covers this adapter only; training and other clients are not included. Do not delete the ledger to bypass the cap.
 
@@ -131,9 +133,9 @@ ready for the two-way phone-audio proof; no driver/pairing setup was performed.
 ## Planned AI stack
 
 - Qwen3.5-4B with supervised LoRA training through Tinker (currently using the untuned base model).
-- whisper.cpp for speech recognition and Piper for speech generation.
+- whisper.cpp for speech recognition and Piper for speech generation (implemented for manual browser role-play).
 - Validated tools for handoff instructions, approval requests and caller-reported outcomes.
-- A browser voice interface for independent agent testing.
+- A manual browser voice interface for independent agent testing (continuous streaming remains future work).
 - Asterisk/BlueZ/AudioSocket for a cellular prototype after two-way Bluetooth audio is verified.
 
 Ubuntu in WSL supports development, but phone-call access additionally requires a compatible Bluetooth device exposed to Linux. The presence of a Linux distribution alone does not establish that connection.

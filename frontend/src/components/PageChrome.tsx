@@ -71,8 +71,8 @@ export const Hero = memo(function Hero() {
         <p>
           GuardMate is being built in stages.{' '}
           <strong>
-            Voice handling is not connected yet; this version does not answer
-            calls.
+            Browser voice is for role-play only; this version does not answer
+            phone calls.
           </strong>
         </p>
       </div>

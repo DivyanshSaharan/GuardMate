@@ -198,6 +198,60 @@
   width: 100%;
   font-size: 12px;
 }
+.conversation-composer > .voice-recorder {
+  display: block;
+  margin-top: 12px;
+}
+.voice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.voice-actions > span,
+.voice-review p,
+.local-voice-note,
+.local-voice-status,
+.voice-error {
+  font-size: 10px;
+  line-height: 1.6;
+  color: #697960;
+}
+.reply-playback {
+  margin-top: 12px;
+}
+.voice-review {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfcf9;
+}
+.voice-review textarea {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  resize: vertical;
+  min-height: 70px;
+  font: inherit;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.voice-review p,
+.voice-review .voice-actions,
+.local-voice-note,
+.local-voice-status,
+.voice-error {
+  margin-top: 8px;
+}
+.voice-error {
+  color: #94472f;
+}
+.voice-recorder .button,
+.reply-playback .button {
+  min-height: 40px;
+}
 .resident-controls {
   border: 1px solid var(--border);
   border-radius: 8px;

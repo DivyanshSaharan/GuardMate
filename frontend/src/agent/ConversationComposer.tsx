@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState, type FormEvent } from 'react'
+import { VoiceRecorder } from './speech/VoiceRecorder'
 
 export const ConversationComposer = memo(function ConversationComposer({
   pending,
@@ -6,12 +7,18 @@ export const ConversationComposer = memo(function ConversationComposer({
   onSend,
   sessionId,
   draftStore,
+  speechReady = false,
+  recordingBlocked = false,
+  onVoiceBusyChange,
 }: {
   pending: boolean
   disabled: boolean
   onSend: (text: string) => Promise<boolean>
   sessionId: string
   draftStore?: Map<string, string>
+  speechReady?: boolean
+  recordingBlocked?: boolean
+  onVoiceBusyChange?: (busy: boolean) => void
 }) {
   const [draft, setDraft] = useState(() => draftStore?.get(sessionId) ?? '')
   function updateDraft(value: string) {
@@ -65,6 +72,14 @@ export const ConversationComposer = memo(function ConversationComposer({
           {pending ? 'Waiting…' : 'Send'}
         </button>
       </div>
+      <VoiceRecorder
+        sessionId={sessionId}
+        blocked={pending || disabled || recordingBlocked}
+        ready={speechReady}
+        draft={draft}
+        onUse={updateDraft}
+        onBusyChange={onVoiceBusyChange}
+      />
     </form>
   )
 })

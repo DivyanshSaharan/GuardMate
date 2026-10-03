@@ -1,0 +1,5 @@
+-r requirements.txt
+piper-tts==1.8.0
+onnxruntime==1.30.0
+pathvalidate==3.3.1
+flatbuffers==25.12.19

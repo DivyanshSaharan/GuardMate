@@ -14,6 +14,8 @@ from .agent.routes import build_router
 from .agent.store import ConversationStore
 from .context import build_context
 from .models import Dashboard, DeliveryMode, OverrideRequest, ResidentProfile, TodayOverride
+from .speech import SpeechService
+from .speech.routes import build_speech_router
 from .store import PreferenceStore
 
 
@@ -21,6 +23,7 @@ def create_app(
     data_dir: Path | None = None,
     clock: Callable[[], datetime] | None = None,
     provider: PlanProvider | None = None,
+    speech_service: SpeechService | None = None,
 ) -> FastAPI:
     root = Path(__file__).resolve().parents[2]
     load_dotenv(root / ".env", override=False)
@@ -96,6 +99,7 @@ def create_app(
         current_time,
     )
     application.include_router(build_router(engine))
+    application.include_router(build_speech_router(engine, speech_service or SpeechService(root)))
     return application
 
 

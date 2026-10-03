@@ -55,7 +55,8 @@ class ConversationEngine:
 
     def start(self, courier_label: str = "") -> Conversation:
         with self._lock:
-            context = self.dashboard().context
+            dashboard = self.dashboard()
+            context = dashboard.context
             if not context.delivery_mode_active:
                 raise HTTPException(409, "Save your preferences and enable delivery mode first.")
             if not self.provider.status().configured:
@@ -66,6 +67,7 @@ class ConversationEngine:
                 courier_label=courier_label,
                 created_at=now,
                 dialogue_version=1,
+                reply_context_fingerprint=fingerprint(dashboard),
                 messages=[
                     Message(
                         role="assistant",
@@ -102,6 +104,7 @@ class ConversationEngine:
                     approval.status = "expired"
                     session.status = "needs_resident"
                     session.authorized_location = None
+                    session.reply_context_fingerprint = fingerprint(dashboard)
                     self._reply(
                         session,
                         "The approval expired or the delivery plan changed. "
@@ -137,6 +140,7 @@ class ConversationEngine:
                 plan = self.provider.generate(build_messages(self.dashboard(), session))
             except ModelUnavailable as error:
                 session.status = "needs_resident"
+                session.reply_context_fingerprint = fingerprint(self.dashboard())
                 self._reply(
                     session,
                     "I couldn't safely continue. Please do not leave the parcel; "
@@ -222,6 +226,8 @@ class ConversationEngine:
     def _execute(
         self, session: Conversation, plan: AgentPlan, text: str, dashboard: Dashboard
     ) -> None:
+        # Stamp the context actually used to compose the checked reply, not a later re-read.
+        session.reply_context_fingerprint = fingerprint(dashboard)
         apply_model_observation(session, plan.observation, text)
         if not dashboard.context.delivery_mode_active:
             self._takeover(session, "Delivery mode has ended. Please do not leave the parcel.")

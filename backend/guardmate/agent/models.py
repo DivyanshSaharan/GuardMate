@@ -86,6 +86,8 @@ class Conversation(BaseModel):
     revision: int = 0
     pending_question: Literal["prepaid", "guard_available", "alternative_location"] | None = None
     dialogue_version: int = 0
+    # Source context for the latest assistant reply; speech freshness only, never model authority.
+    reply_context_fingerprint: str | None = None
 
 
 class StartRequest(StrictModel):
