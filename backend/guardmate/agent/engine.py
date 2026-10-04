@@ -126,8 +126,15 @@ class ConversationEngine:
                 )
             if session.turn_count >= MAX_TURNS:
                 raise HTTPException(409, "Twenty-turn limit reached. End this conversation.")
-            if not self.dashboard().context.delivery_mode_active:
+            admitted_dashboard = self.dashboard()
+            if not admitted_dashboard.context.delivery_mode_active:
                 raise HTTPException(409, "Delivery mode has ended. No handoff is authorized.")
+            if request.expected_context is not None and request.expected_context != fingerprint(
+                admitted_dashboard
+            ):
+                raise HTTPException(
+                    409, "The captured delivery context changed. Discard and recapture this turn."
+                )
             text = request.text.strip()
             if not text:
                 raise HTTPException(422, "Enter a courier message.")
@@ -141,7 +148,10 @@ class ConversationEngine:
             provider = self.provider
             model_identity = self._model_identity(provider)
             try:
-                plan = provider.generate(build_messages(self.dashboard(), session))
+                prompt_dashboard = (
+                    admitted_dashboard if request.expected_context is not None else self.dashboard()
+                )
+                plan = provider.generate(build_messages(prompt_dashboard, session))
             except ModelUnavailable as error:
                 model_result = "unavailable"
                 session.status = "needs_resident"
@@ -156,7 +166,21 @@ class ConversationEngine:
             else:
                 model_result = "plan_returned"
                 # Re-read resident state AFTER the potentially slow model call.
-                self._execute(session, plan, text, self.dashboard())
+                checked_dashboard = self.dashboard()
+                if request.expected_context is not None and request.expected_context != fingerprint(
+                    checked_dashboard
+                ):
+                    self._takeover(
+                        session,
+                        "The resident's delivery plan changed while I was checking. "
+                        "Please keep the parcel with you; the resident needs to help.",
+                    )
+                else:
+                    self._execute(session, plan, text, checked_dashboard)
+                if request.expected_context is not None:
+                    # Stamp the snapshot actually checked, not settings that may
+                    # have changed again while a reply was being constructed.
+                    session.reply_context_fingerprint = fingerprint(checked_dashboard)
                 session.events[-1].model_action = plan.action
                 session.events[-1].model_question = (
                     plan.question if plan.action == "clarify" else None

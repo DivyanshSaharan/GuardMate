@@ -243,3 +243,10 @@ class WindowsKernelAudio:
     def play(self, device: AudioDevice, audio: bytes) -> None:
         sample_rate, pcm = validate_audio(audio)
         self._stream(device, sample_rate, pcm, recording=False)
+
+    def play_reply(self, device: AudioDevice, audio: bytes) -> None:
+        """Play one complete bounded 16 kHz reply, without chunk boundaries."""
+        sample_rate, pcm = validate_audio(audio, max_seconds=30)
+        if sample_rate != 16000:
+            raise AudioError("Manual call replies must be 16000 Hz PCM16 mono WAV.")
+        self._stream(device, sample_rate, pcm, recording=False)

@@ -139,12 +139,15 @@ def _caps_name(caps) -> str:
     return struct.pack("<" + "H" * len(values), *values).decode("utf-16-le", errors="replace")
 
 
-def validate_audio(audio: bytes) -> tuple[int, bytes]:
+def validate_audio(audio: bytes, *, max_seconds: int = 10) -> tuple[int, bytes]:
     """Validate the complete RIFF container and PCM metadata before playback."""
-    if type(audio) is not bytes or not 44 <= len(audio) <= 324096:
-        raise AudioError("Use a complete PCM16 mono WAV of at most 10 seconds.")
+    if type(max_seconds) is not int or not 1 <= max_seconds <= 30:
+        raise AudioError("Use a whole-second audio bound from 1 through 30.")
+    bound_message = f"Use a complete PCM16 mono WAV of at most {max_seconds} seconds."
+    if type(audio) is not bytes or not 44 <= len(audio) <= max_seconds * 32000 + 4096:
+        raise AudioError(bound_message)
     if audio[:4] != b"RIFF" or audio[8:12] != b"WAVE":
-        raise AudioError("Use a complete PCM16 mono WAV of at most 10 seconds.")
+        raise AudioError(bound_message)
     if struct.unpack_from("<I", audio, 4)[0] + 8 != len(audio):
         raise AudioError("The WAV length is inconsistent or incomplete.")
     offset = 12
@@ -183,9 +186,9 @@ def validate_audio(audio: bytes) -> tuple[int, bytes]:
         or bits != 16
         or not pcm
         or len(pcm) % 2
-        or len(pcm) > rate * 2 * _MAX_SECONDS
+        or len(pcm) > rate * 2 * max_seconds
     ):
-        raise AudioError("Use a complete PCM16 mono WAV of at most 10 seconds.")
+        raise AudioError(bound_message)
     return rate, pcm
 
 

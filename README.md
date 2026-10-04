@@ -28,15 +28,28 @@ Alternative locations require an explicit, single-use resident approval. Approva
 
 The role-play now has opt-in browser speech: record up to 30 seconds, review local Whisper transcription before sending, and explicitly play the latest checked reply with local Piper. Recording/playback are mutually exclusive and stay isolated across sessions. Speech workers use temporary audio, bounded CPU jobs and no model API credentials. Qwen planning remains hosted and untuned. See [browser voice setup and measured limits](docs/browser-voice.md).
 
-Calls are not answered or transferred yet. This is a browser role-play prototype, not a connected cellular assistant or a trained model.
+Automatic call answering and transfer are not implemented. The browser remains a role-play interface; an optional manually answered Windows call runner is described below.
 
 A separate [Windows cellular-audio probe](docs/cellular-audio-probe.md) now inspects
 explicit phone audio endpoints and provides opt-in, bounded recording/playback for
 a consenting test call. On a vivo T2x 5G, the user confirmed caller audio in a
 five-second WDM-KS recording and reported the identifiable phrase and final number
-from synthetic transmission. Directions were tested separately: simultaneous duplex,
-full-phrase intelligibility and autonomous call handling remain unverified.
+from synthetic transmission. Directions were tested separately; the standalone
+probe did not establish simultaneous duplex, full-phrase intelligibility or
+autonomous call handling.
 The probe never falls back to the laptop microphone/speaker or invokes Qwen.
+
+An [operator-controlled cellular conversation runner](docs/manual-cellular-call.md)
+now connects the selected phone audio route to local Whisper transcription, the
+existing checked Qwen conversation and local Piper replies. Each run creates a
+fresh session. Transcripts need review and an explicit send; call answer/hangup
+remain manual. Hosted transcript/context consent, an active delivery window and
+fresh reply checks are required. Offline tests cover the integration. In the
+[first consenting live call](docs/live-cellular-test-2026-10-04.md), the caller
+confirmed the full greeting and three checked replies from actual base-Qwen turns.
+Speech recognition remained unreliable, and an ambiguous outcome was rejected
+rather than recorded as delivery. Unattended operation is not implemented; further
+hosted/live tests require fresh agreement.
 
 An offline-first LoRA workflow now previews completion-only, train-split planner targets
 and estimates the full schedule before any hosted work. Reviewed labels and explicit
@@ -159,11 +172,11 @@ ready for the two-way phone-audio proof; no driver/pairing setup was performed.
 ## Planned AI stack
 
 - Qwen3.5-4B with supervised LoRA training through Tinker (currently using the untuned base model).
-- whisper.cpp for speech recognition and Piper for speech generation (implemented for manual browser role-play).
+- whisper.cpp for local speech recognition and Piper for local speech generation.
 - Validated tools for handoff instructions, approval requests and caller-reported outcomes.
 - A manual browser voice interface for independent agent testing (continuous streaming remains future work).
-- Asterisk/BlueZ/AudioSocket for a cellular prototype after two-way Bluetooth audio is verified.
+- Windows Phone Link with pinned WDM-KS audio for the operator-controlled cellular test runner. One integrated call is demonstrated; answering and hangup remain manual, and speech recognition needs improvement.
 
-Ubuntu in WSL supports development, but phone-call access additionally requires a compatible Bluetooth device exposed to Linux. The presence of a Linux distribution alone does not establish that connection.
+Ubuntu in WSL supports development. The current cellular experiment runs on Windows, not WSL. A future Linux/BlueZ route would require compatible Bluetooth hardware exposed to Linux and its own two-way audio proof.
 
 The integration follows the [Tinker sampling API](https://tinker-docs.thinkingmachines.ai/tinker/api-reference/samplingclient/) and the [Qwen3.5 model card](https://huggingface.co/Qwen/Qwen3.5-4B). Budget estimates use the published [Tinker model pricing](https://tinker-docs.thinkingmachines.ai/tinker/models/models_and_pricing/).

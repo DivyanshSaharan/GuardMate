@@ -132,6 +132,11 @@ class ConversationSummary(BaseModel):
 class TurnRequest(StrictModel):
     text: str = Field(min_length=1, max_length=600)
     revision: int = Field(ge=0)
+    # Optional for legacy text clients; manual call capture pins the resident
+    # context as well as the question/revision before any hosted planner work.
+    expected_context: str | None = Field(
+        default=None, strict=True, min_length=64, max_length=64, pattern=r"^[a-f0-9]{64}$"
+    )
 
 
 class ResidentDecision(StrictModel):
