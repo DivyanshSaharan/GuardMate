@@ -1,6 +1,7 @@
 import { memo, useRef, useState } from 'react'
 import { AgentTrace } from './AgentTrace'
 import { ConversationTranscript } from './ConversationTranscript'
+import { ModelStatusCard } from './ModelStatusCard'
 import { ResidentControls } from './ResidentControls'
 import { SessionControls } from './SessionControls'
 import { sessionName } from './sessionState'
@@ -24,22 +25,7 @@ function RolePlay() {
   const drafts = useRef(new Map<string, string>())
   return (
     <div className="conversation-lab-body">
-      <p className="muted">
-        {model?.message ?? 'Checking the model configuration…'}
-      </p>
-      <p className="model-budget">
-        {model?.model ?? 'Qwen3.5-4B'} · hosted inference · estimated usage
-        reserved: ${(model?.reserved_usd ?? 0).toFixed(4)} / $
-        {(model?.budget_usd ?? 0.25).toFixed(2)}
-      </p>
-      <p className="muted">
-        Not offline yet. Saved instructions and role-play messages are sent to
-        Tinker. Never enter real OTPs or private customer data.
-      </p>
-      <p className="muted">
-        Qwen plans the next action; GuardMate renders the checked reply. This is
-        the base model, not a fine-tuned one yet.
-      </p>
+      <ModelStatusCard status={model} />
       <SessionControls
         sessions={sessions}
         conversation={conversation}

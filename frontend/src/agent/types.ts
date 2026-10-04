@@ -1,11 +1,31 @@
-export interface ModelStatus {
-  configured: boolean
+export type ModelTargetKind = 'base' | 'tuned' | 'unspecified'
+
+export interface ModelIdentity {
   model: string
   provider: string
+  target_kind?: ModelTargetKind
+  sampler_checkpoint?: string | null
+  checkpoint_verified?: boolean
+}
+
+export interface ModelStatus extends ModelIdentity {
+  configured: boolean
   message: string
   reserved_usd: number
   budget_usd: number
   voice_connected: false
+}
+
+export interface AgentEvent {
+  action: string
+  detail: string
+  at: string
+  latency_ms: number | null
+  model_action?: string | null
+  model_question?: string | null
+  model_observation?: Record<string, boolean | null> | null
+  model_identity?: ModelIdentity | null
+  model_result?: 'plan_returned' | 'unavailable' | null
 }
 
 export interface Conversation {
@@ -24,15 +44,7 @@ export interface Conversation {
     content: string
     at: string
   }>
-  events: Array<{
-    action: string
-    detail: string
-    at: string
-    latency_ms: number | null
-    model_action?: string | null
-    model_question?: string | null
-    model_observation?: Record<string, boolean | null> | null
-  }>
+  events: AgentEvent[]
   approval: {
     id: string
     location: string

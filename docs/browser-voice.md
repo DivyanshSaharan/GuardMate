@@ -2,7 +2,9 @@
 
 Browser speech is a manual, half-duplex testing interface, not a cellular bridge or autonomous
 call-answering service. It reuses the existing conversation and resident-approval workflow.
-Whisper/Piper run on the backend computer; **Qwen planning is still hosted through Tinker and untuned**.
+Whisper/Piper run on the backend computer; **Qwen planning is still hosted through Tinker**.
+Base Qwen is the default; an explicitly configured [sampler checkpoint](model-selection.md)
+uses the same text-planning and checked-reply path. No checkpoint is selected in this setup.
 
 ## Setup on Windows x64
 

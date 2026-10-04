@@ -123,7 +123,8 @@ Checkpoint saving does not establish local adapter export, local inference, or
 deployment. Expired checkpoints cannot be assumed available later.
 
 Explicit [tuned-checkpoint evaluation and matched comparison](evaluation.md) are now
-implemented. Production selection is still separate. Compare base and tuned plans
+implemented. [Role-play selection](model-selection.md) is a separate, explicit configuration,
+never an automatic training side effect. Compare base and tuned plans
 under the same corpus, prompt, policy, dependency, decoding and scoring fingerprints;
 reserve sampling separately. Report model-plan quality as well as checked behavior,
 latency, failures and small sample counts. Do not describe the existing historical

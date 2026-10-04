@@ -25,6 +25,7 @@ from .models import (
     Conversation,
     ConversationSummary,
     Message,
+    ModelIdentity,
     ResidentDecision,
     TurnRequest,
 )
@@ -136,9 +137,13 @@ class ConversationEngine:
             session.turn_count += 1
             self._detect_exceptions(session, text)
             started = perf_counter()
+            # Keep attribution tied to this attempted provider, not a later UI selection.
+            provider = self.provider
+            model_identity = self._model_identity(provider)
             try:
-                plan = self.provider.generate(build_messages(self.dashboard(), session))
+                plan = provider.generate(build_messages(self.dashboard(), session))
             except ModelUnavailable as error:
+                model_result = "unavailable"
                 session.status = "needs_resident"
                 session.reply_context_fingerprint = fingerprint(self.dashboard())
                 self._reply(
@@ -149,6 +154,7 @@ class ConversationEngine:
                     str(error),
                 )
             else:
+                model_result = "plan_returned"
                 # Re-read resident state AFTER the potentially slow model call.
                 self._execute(session, plan, text, self.dashboard())
                 session.events[-1].model_action = plan.action
@@ -158,6 +164,20 @@ class ConversationEngine:
                 session.events[-1].model_observation = plan.observation.model_dump(
                     exclude={"evidence"}
                 )
+            # A successful first checkpoint lookup may have verified the identity.
+            # Local metadata failures must not discard an otherwise checked reply.
+            updated_identity = self._model_identity(provider)
+            if (
+                model_identity is not None
+                and updated_identity is not None
+                and updated_identity.model_dump(exclude={"checkpoint_verified"})
+                != model_identity.model_dump(exclude={"checkpoint_verified"})
+            ):
+                # A mutable test/custom adapter cannot relabel the attempted target
+                # with a different post-call selection or transfer its verification.
+                updated_identity = model_identity
+            session.events[-1].model_identity = updated_identity or model_identity
+            session.events[-1].model_result = model_result
             session.events[-1].latency_ms = round((perf_counter() - started) * 1000)
             self.store.write(session)
             return session
@@ -202,6 +222,18 @@ class ConversationEngine:
             session.revision += 1
             self.store.write(session)
             return session
+
+    @staticmethod
+    def _model_identity(provider: PlanProvider) -> ModelIdentity | None:
+        try:
+            status = provider.status()
+            return ModelIdentity.model_validate(
+                status.model_dump(include=set(ModelIdentity.model_fields))
+            ).model_copy(deep=True)
+        except Exception:
+            # Status is local metadata, not a second model call. Do not save its
+            # errors, budget, message, or any extra provider fields in conversation history.
+            return None
 
     @staticmethod
     def _check_revision(session: Conversation, revision: int) -> None:

@@ -92,9 +92,17 @@ def create_app(
         return dashboard()
 
     conversation_store = ConversationStore(storage_dir)
+    selected_provider = (
+        provider
+        if provider is not None
+        else TinkerProvider(
+            conversation_store,
+            sampler_checkpoint=os.environ.get("GUARDMATE_SAMPLER_CHECKPOINT") or None,
+        )
+    )
     engine = ConversationEngine(
         conversation_store,
-        provider or TinkerProvider(conversation_store),
+        selected_provider,
         dashboard,
         current_time,
     )

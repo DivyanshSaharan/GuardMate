@@ -75,7 +75,8 @@ overwritten. Use a new descriptive filename for each run. Record the dataset, pr
 production-source hashes before comparing results. Do not compare different seed sets as if they were
 the same benchmark. Keep the model, prompt, policy, decoding settings and replay procedure fixed when
 comparing base and tuned checkpoints. Explicit sampler-checkpoint evaluation and matched
-development comparisons are now implemented below; production selection remains separate.
+development comparisons are now implemented below; [role-play selection](model-selection.md)
+is a separate, explicit backend configuration.
 
 ## Evaluate a sampler checkpoint
 
@@ -200,7 +201,8 @@ separate command modes described above.
 The separate [training workflow](training.md) now implements completion-only tokenization,
 offline cost previews and explicitly admitted LoRA execution. It does not run automatically
 from evaluation, and draft labels still block prepared/live jobs. Tuned-checkpoint comparison
-is implemented above; production model selection remains a later increment.
+is implemented above; role-play selection is explicitly configured separately and never
+automatically changed by evaluation.
 
 The dataset's current sources and review state must be reported honestly in the submission. Do not
 claim a fine-tuning benefit until comparable base/tuned measurements exist.

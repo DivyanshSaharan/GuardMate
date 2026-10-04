@@ -61,6 +61,15 @@ class Message(BaseModel):
     at: datetime
 
 
+class ModelIdentity(BaseModel):
+    model: str
+    provider: str
+    target_kind: Literal["base", "tuned", "unspecified"] = "unspecified"
+    sampler_checkpoint: str | None = None
+    # Provider metadata verifies base-model identity only, not improvement or safety.
+    checkpoint_verified: bool = False
+
+
 class AgentEvent(BaseModel):
     action: str
     detail: str
@@ -69,6 +78,8 @@ class AgentEvent(BaseModel):
     model_action: str | None = None
     model_question: str | None = None
     model_observation: dict[str, bool | None] | None = None
+    model_identity: ModelIdentity | None = None
+    model_result: Literal["plan_returned", "unavailable"] | None = None
 
 
 class Conversation(BaseModel):
@@ -129,10 +140,8 @@ class ResidentDecision(StrictModel):
     revision: int = Field(ge=0)
 
 
-class ModelStatus(BaseModel):
+class ModelStatus(ModelIdentity):
     configured: bool
-    model: str
-    provider: str
     message: str
     reserved_usd: float
     budget_usd: float

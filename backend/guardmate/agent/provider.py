@@ -71,11 +71,15 @@ class TinkerProvider:
             )
             checkpoint_message = (
                 f" Sampler checkpoint configured: {self.sampler_checkpoint} ({verification})."
+                " Verification checks base-model identity only, not improvement or safety."
             )
         return ModelStatus(
             configured=configured,
             model=MODEL,
             provider="Tinker (hosted open-weight model)",
+            target_kind="tuned" if self.sampler_checkpoint is not None else "base",
+            sampler_checkpoint=self.sampler_checkpoint,
+            checkpoint_verified=self._checkpoint_verified,
             message=(
                 "Key configured for text role-play. Conversations go to Tinker; "
                 "calls are not connected."

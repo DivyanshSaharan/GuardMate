@@ -39,8 +39,14 @@ has run yet; see the [training guide](docs/training.md).
 Evaluation can now load an explicit sampler checkpoint, verify its base-model identity
 and compare freshly matched base/tuned development replays using one shared inference
 allowance. Saved reports can also be compared offline; incomplete, historical, oracle
-or mismatched reports cannot become improvement claims. This does not switch production,
+or mismatched reports cannot become improvement claims. Evaluation does not switch production,
 and no tuned-model results exist yet. See the [evaluation guide](docs/evaluation.md).
+
+Role-play model selection is now an explicit backend-only configuration. Base Qwen remains
+the default; an optional sampler checkpoint has separate selection/identity-verification
+status, with no silent fallback. New model turns save their own provider/checkpoint identity
+in the action trace, so changing configuration cannot relabel historical turns. See the
+[model-selection guide](docs/model-selection.md). No checkpoint has been selected here.
 
 ## Run locally
 
