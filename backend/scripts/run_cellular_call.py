@@ -32,8 +32,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--backend", default="http://127.0.0.1:8765")
     parser.add_argument("--input-id", type=int)
     parser.add_argument("--output-id", type=int)
-    parser.add_argument("--seconds", type=int, default=5)
-    parser.add_argument("--max-turns", type=int, default=5)
+    parser.add_argument("--seconds", type=int, default=10)
+    parser.add_argument("--max-turns", type=int, default=10)
     parser.add_argument("--label", default="Manual cellular test")
     parser.add_argument("--ack-consenting-test-call", action="store_true")
     parser.add_argument("--ack-exclusive-audio-risk", action="store_true")
@@ -118,11 +118,6 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
         print(
-            "Answer the consenting fictional test call on the PC. Keep the phone off speakerphone; "
-            "mute only the laptop microphone, not the call. "
-            "WDM-KS may interrupt Phone Link audio.\n"
-            "No raw capture is retained by this runner. Reviewed text is stored locally and sent "
-            "to hosted Qwen only when you choose send.\n"
             "Type CALL READY only when both people agree and this same call is active. "
             "Anything else exits.",
             flush=True,
