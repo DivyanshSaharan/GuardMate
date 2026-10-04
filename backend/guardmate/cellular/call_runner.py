@@ -78,6 +78,7 @@ class ManualCallRunner:
         max_turns: int = 5,
         hosted_consent: bool = False,
         emit: Callable[[dict], None] | None = None,
+        admission_check: Callable[[], None] | None = None,
     ):
         if type(seconds) is not int or not 1 <= seconds <= 10:
             raise CallError("Choose a capture length from 1 to 10 seconds.")
@@ -94,6 +95,7 @@ class ManualCallRunner:
         self.seconds, self.max_turns = seconds, max_turns
         self.hosted_consent = hosted_consent
         self.emit = emit or (lambda event: None)
+        self.admission_check = admission_check
         self.session: Conversation | None = None
         self.draft: str | None = None
         self._draft_context: str | None = None
@@ -126,6 +128,12 @@ class ManualCallRunner:
             raise CallError("Start a fresh manual call session first.")
         return self.session
 
+    def _admit(self) -> None:
+        # Optional admission-time bound; never interrupt or retry an operation
+        # already in flight. The automatic coordinator installs this temporarily.
+        if self.admission_check is not None:
+            self.admission_check()
+
     @staticmethod
     def _active(session: Conversation) -> None:
         if session.status != "active":
@@ -151,7 +159,9 @@ class ManualCallRunner:
                 raise CallError(
                     "Hosted transcript/context consent is required before starting this runner."
                 )
+            self._admit()
             require_ready(self.backend.inspect())
+            self._admit()
             session = self.backend.start(label)
             self.session = session
             self.emit(
@@ -165,7 +175,7 @@ class ManualCallRunner:
             self._speak(session)
             return session
 
-    def listen(self) -> str:
+    def listen(self, *, capture: Callable[[], bytes] | None = None) -> str:
         with self._operation():
             if self.draft is not None:
                 raise CallError(
@@ -175,15 +185,26 @@ class ManualCallRunner:
                 raise CallError("The manual model-turn limit has been reached. Stop this test.")
             session = self._read_owned()
             self._active(session)
+            self._admit()
             require_ready(self.backend.inspect())
             context = self.backend.context_token(session)
             self.session = session
-            self.emit({"event": "recording", "seconds": self.seconds})
-            recorded = self.audio.record(self.input_device, self.seconds)
+            if capture is None:
+                self.emit({"event": "recording", "seconds": self.seconds})
+            else:
+                self.emit({"event": "listening_for_utterance", "fixed_window_capture": False})
+            self._admit()
+            recorded = (
+                capture()
+                if capture is not None
+                else self.audio.record(self.input_device, self.seconds)
+            )
             self.emit({"event": "local_transcription", "model_request_sent": False})
+            self._admit()
             result = self.backend.transcribe(recorded)
             # Keep the raw capture out of runner history and never pass it to send().
             del recorded
+            self._admit()
             text = result.get("text")
             if not isinstance(text, str) or not text.strip() or len(text) > 600:
                 raise CallError(
@@ -232,6 +253,7 @@ class ManualCallRunner:
                 raise CallError(
                     "Delivery context changed. Discard the transcript and record a fresh turn."
                 )
+            self._admit()
             self.model_attempts += 1
             self.emit(
                 {"event": "model_pending", "attempt": self.model_attempts, "limit": self.max_turns}
@@ -257,10 +279,13 @@ class ManualCallRunner:
             raise CallError("This reply has already been played. An explicit repeat is required.")
         text = session.messages[-1].content
         self.emit({"event": "checked_reply", "text": text, "status": session.status})
+        self._admit()
         spoken = self.backend.synthesize(session)
+        self._admit()
         pcm = self.convert_reply(spoken)
         # Revalidate AFTER synthesis/resampling and immediately BEFORE native audio.
         self.backend.ensure_fresh(session)
+        self._admit()
         self.emit({"event": "playback", "listen_active": False})
         self.audio.play(self.output_device, pcm)
         self._played = key

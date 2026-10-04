@@ -51,6 +51,15 @@ Speech recognition remained unreliable, and an ambiguous outcome was rejected
 rather than recorded as delivery. Unattended operation is not implemented; further
 hosted/live tests require fresh agreement.
 
+An experimental [automatic conversation mode](docs/automatic-cellular-call.md)
+now removes per-turn `listen`/`send` commands after manual answering. It uses a
+bounded energy endpointer, local ASR, explicit startup consent for automatic
+**unreviewed transcript** uploads, and the existing checked Qwen/Piper path.
+Silence, clipping, approval, errors, stale context and turn/time limits stop the
+loop; pending resident decisions remain saved. Speech recognition is still
+unreliable, and this new mode is for supervised fictional testing only, not
+unattended real couriers. Automatic mode has not been tested on a live call.
+
 An offline-first LoRA workflow now previews completion-only, train-split planner targets
 and estimates the full schedule before any hosted work. Reviewed labels and explicit
 cost/update/retry acknowledgements are required for training. Persistent reservations

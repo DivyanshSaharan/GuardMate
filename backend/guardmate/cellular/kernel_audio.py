@@ -250,3 +250,99 @@ class WindowsKernelAudio:
         if sample_rate != 16000:
             raise AudioError("Manual call replies must be 16000 Hz PCM16 mono WAV.")
         self._stream(device, sample_rate, pcm, recording=False)
+
+    def listen_for_utterance(self, device: AudioDevice, *, config=None, on_armed=None) -> bytes:
+        """One input stream, armed after real frames arrive, closed before returning."""
+        from .utterance import NoSpeech, UtteranceConfig, UtteranceEndpointer, UtteranceTooLong
+
+        config = config if config is not None else UtteranceConfig()
+        endpointer = UtteranceEndpointer(config)
+        api = self._api()
+        self._validate(device, "input")
+        armed = threading.Event()
+        finished = threading.Event()
+        state = {"failed": None}
+
+        def callback(buffer, frames, _clock, status):
+            try:
+                view = memoryview(buffer).cast("B")
+                if (
+                    type(frames) is not int
+                    or not 1 <= frames <= 16000
+                    or len(view) != frames * 2
+                    or status
+                ):
+                    state["failed"] = "The WDM-KS callback reported incomplete audio."
+                    raise api.CallbackAbort
+                armed.set()
+                if endpointer.feed(view) is not None:
+                    raise api.CallbackStop
+            except (api.CallbackStop, api.CallbackAbort):
+                raise
+            except BaseException:
+                state["failed"] = "The WDM-KS audio callback failed."
+                raise api.CallbackAbort from None
+
+        stream = None
+        completed = False
+        resources = (callback, armed, finished, state, endpointer)
+        try:
+            stream = api.RawInputStream(
+                device=device.id,
+                channels=1,
+                dtype="int16",
+                samplerate=16000,
+                blocksize=320,
+                callback=callback,
+                finished_callback=finished.set,
+                clip_off=True,
+                dither_off=True,
+            )
+            self._validate(device, "input")
+            if (
+                stream.device != device.id
+                or stream.channels != 1
+                or stream.dtype != "int16"
+                or stream.samplerate != 16000
+            ):
+                raise AudioError(
+                    "The WDM-KS stream did not retain the requested device and format."
+                )
+            stream.start()
+            if not armed.wait(3.0):
+                raise AudioError("The WDM-KS listener did not receive valid input frames.")
+            if on_armed is not None:
+                on_armed()
+            if not finished.wait(config.idle_timeout_seconds + config.max_utterance_seconds + 2.0):
+                raise AudioError("The WDM-KS device did not finish within its time limit.")
+            if state["failed"] is not None:
+                raise AudioError(state["failed"])
+            if endpointer.status not in ("utterance", "no_speech", "too_long"):
+                raise AudioError("The WDM-KS device returned incomplete audio.")
+            completed = True
+        except AudioError:
+            raise
+        except Exception as error:
+            if _portaudio_code(api, error) == -9985:
+                raise AudioError(
+                    "The WDM-KS endpoint is unavailable or occupied; no retry."
+                ) from None
+            raise AudioError("Windows WDM-KS audio access failed.") from None
+        finally:
+            if stream is not None:
+                pending_error = sys.exc_info()[0] is not None
+                if not self._cleanup(stream, resources, completed) and not pending_error:
+                    raise AudioError("Windows WDM-KS audio could not safely release the device.")
+        if endpointer.status == "no_speech":
+            raise NoSpeech("No sustained speech arrived within the listening window.")
+        if endpointer.status == "too_long":
+            raise UtteranceTooLong("Speech did not finish within the complete utterance budget.")
+        output = io.BytesIO()
+        with wave.open(output, "wb") as wav:
+            wav.setnchannels(1)
+            wav.setsampwidth(2)
+            wav.setframerate(16000)
+            wav.writeframes(endpointer.pcm)
+        recording = output.getvalue()
+        validate_audio(recording)
+        return recording
