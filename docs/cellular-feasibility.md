@@ -37,6 +37,16 @@ Use existing hardware and timebox the attempt to two hours. First confirm the ex
 a consenting second phone for calls, and whether a native-Linux boot/another existing Linux machine
 is available. No new hardware purchase or paid telephony service is assumed.
 
+October 4 follow-up: a separate [Windows/Phone Link proof path](cellular-audio-probe.md)
+uses the existing Windows adapter rather than moving it into WSL. The user reported
+successful pairing of a vivo T2x 5G after a targeted re-pair, then working human
+speech in both directions through Phone Link. Separate mono 16 kHz WDM-KS trials
+then produced a user-confirmed caller recording and a user-reported identifiable
+phrase and final number from synthetic transmission. Full-phrase intelligibility,
+simultaneous duplex and autonomous call handling remain unverified. No vivo
+WASAPI endpoints were found. WDM-KS may conflict with Phone Link's audio ownership.
+These Windows observations do not resolve the WSL prerequisites.
+
 The prerequisite is a Linux-visible Bluetooth HCI controller. Driver/kernel changes, installations,
 USB attachment and pairing need an explicit setup decision; do not begin an open-ended kernel
 rebuild during the challenge. Then require all five observations using a prerecorded reply before

@@ -30,6 +30,14 @@ The role-play now has opt-in browser speech: record up to 30 seconds, review loc
 
 Calls are not answered or transferred yet. This is a browser role-play prototype, not a connected cellular assistant or a trained model.
 
+A separate [Windows cellular-audio probe](docs/cellular-audio-probe.md) now inspects
+explicit phone audio endpoints and provides opt-in, bounded recording/playback for
+a consenting test call. On a vivo T2x 5G, the user confirmed caller audio in a
+five-second WDM-KS recording and reported the identifiable phrase and final number
+from synthetic transmission. Directions were tested separately: simultaneous duplex,
+full-phrase intelligibility and autonomous call handling remain unverified.
+The probe never falls back to the laptop microphone/speaker or invokes Qwen.
+
 An offline-first LoRA workflow now previews completion-only, train-split planner targets
 and estimates the full schedule before any hosted work. Reviewed labels and explicit
 cost/update/retry acknowledgements are required for training. Persistent reservations

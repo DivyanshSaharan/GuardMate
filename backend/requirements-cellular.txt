@@ -1,0 +1,4 @@
+# Optional Windows-only, explicitly selected local cellular-audio experiment.
+# Not required for the backend, browser role-play or local speech engine.
+sounddevice==0.5.6; sys_platform == "win32"
+cffi==2.1.1; sys_platform == "win32"
