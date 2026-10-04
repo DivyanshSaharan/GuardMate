@@ -1,6 +1,7 @@
 import importlib.util
 import math
 import os
+import re
 from threading import Lock
 from typing import Protocol
 
@@ -13,6 +14,21 @@ MODEL = "Qwen/Qwen3.5-4B"
 MAX_OUTPUT_TOKENS = 512
 MAX_INPUT_TOKENS = 12_000
 BUDGET_MICRODOLLARS = 250_000
+_SAMPLER_CHECKPOINT = re.compile(
+    # Native model IDs are session-id:train:sequence, not HTTP hostnames/ports.
+    r"tinker://(?=[A-Za-z0-9_:-]{1,200}/)[A-Za-z0-9][A-Za-z0-9_-]*"
+    r"(?::[A-Za-z0-9][A-Za-z0-9_-]*)*/sampler_weights/"
+    r"[A-Za-z0-9][A-Za-z0-9_.-]{0,199}"
+)
+
+
+def validate_sampler_checkpoint(value: str) -> str:
+    """Accept only a canonical sampler export, never full training state or a URL alias."""
+    if not isinstance(value, str) or _SAMPLER_CHECKPOINT.fullmatch(value) is None or ".." in value:
+        raise ValueError(
+            "Checkpoint must be a canonical tinker://model-id/sampler_weights/checkpoint-name path."
+        )
+    return value
 
 
 class ModelUnavailable(Exception):
@@ -26,18 +42,36 @@ class PlanProvider(Protocol):
 
 
 class TinkerProvider:
-    def __init__(self, store: ConversationStore):
+    def __init__(self, store: ConversationStore, *, sampler_checkpoint: str | None = None):
         self.store = store
+        self._sampler_checkpoint = (
+            validate_sampler_checkpoint(sampler_checkpoint)
+            if sampler_checkpoint is not None
+            else None
+        )
+        self._checkpoint_verified = False
         self._client = None
         self._tokenizer = None
         self._lock = Lock()
         self.validation_errors: list[dict] = []
+
+    @property
+    def sampler_checkpoint(self) -> str | None:
+        return self._sampler_checkpoint
 
     def status(self) -> ModelStatus:
         installed = all(
             importlib.util.find_spec(package) for package in ("tinker", "transformers", "jinja2")
         )
         configured = installed and bool(os.environ.get("TINKER_API_KEY"))
+        checkpoint_message = ""
+        if self.sampler_checkpoint is not None:
+            verification = (
+                "base model verified" if self._checkpoint_verified else "not yet verified"
+            )
+            checkpoint_message = (
+                f" Sampler checkpoint configured: {self.sampler_checkpoint} ({verification})."
+            )
         return ModelStatus(
             configured=configured,
             model=MODEL,
@@ -47,7 +81,8 @@ class TinkerProvider:
                 "calls are not connected."
                 if configured
                 else "Install requirements-ai.txt and set TINKER_API_KEY in your local .env."
-            ),
+            )
+            + checkpoint_message,
             reserved_usd=self.store.reserved_microdollars() / 1_000_000,
             budget_usd=BUDGET_MICRODOLLARS / 1_000_000,
         )
@@ -63,10 +98,24 @@ class TinkerProvider:
 
                 if self._client is None:
                     service = tinker.ServiceClient()
-                    self._client = service.create_sampling_client(
-                        base_model=MODEL,
-                        retry_config=RetryConfig(enable_retry_logic=False, progress_timeout=45),
-                    )
+                    retry_config = RetryConfig(enable_retry_logic=False, progress_timeout=45)
+                    if self.sampler_checkpoint is None:
+                        self._client = service.create_sampling_client(
+                            base_model=MODEL, retry_config=retry_config
+                        )
+                    else:
+                        self._client = service.create_sampling_client(
+                            model_path=self.sampler_checkpoint, retry_config=retry_config
+                        )
+                if self.sampler_checkpoint is not None and not self._checkpoint_verified:
+                    # Public SDK metadata lookup; never tokenize/reserve/sample a different model.
+                    # SamplingClient has get_base_model(), not TrainingClient.get_info().
+                    if self._client.get_base_model() != MODEL:
+                        raise ModelUnavailable(
+                            "Checkpoint base model could not be verified as Qwen/Qwen3.5-4B. "
+                            "No model sample was sent."
+                        )
+                    self._checkpoint_verified = True
                 if self._tokenizer is None:
                     self._tokenizer = self._client.get_tokenizer()
                 tokens = self._tokenizer.apply_chat_template(

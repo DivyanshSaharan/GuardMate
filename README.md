@@ -36,6 +36,12 @@ cost/update/retry acknowledgements are required for training. Persistent reserva
 and isolated execution preserve uncertain runs without replaying them. No fine-tuning
 has run yet; see the [training guide](docs/training.md).
 
+Evaluation can now load an explicit sampler checkpoint, verify its base-model identity
+and compare freshly matched base/tuned development replays using one shared inference
+allowance. Saved reports can also be compared offline; incomplete, historical, oracle
+or mismatched reports cannot become improvement claims. This does not switch production,
+and no tuned-model results exist yet. See the [evaluation guide](docs/evaluation.md).
+
 ## Run locally
 
 Use Node.js 22.12+ (or a newer supported Node release) and Python 3.13+. The current setup was tested with Node.js 26 and Python 3.13 on Windows.

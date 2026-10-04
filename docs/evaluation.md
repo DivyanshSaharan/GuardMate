@@ -74,7 +74,89 @@ Reports and exports must remain under ignored `.data/evaluation/`; existing arti
 overwritten. Use a new descriptive filename for each run. Record the dataset, prompt, plan-schema and
 production-source hashes before comparing results. Do not compare different seed sets as if they were
 the same benchmark. Keep the model, prompt, policy, decoding settings and replay procedure fixed when
-comparing base and tuned checkpoints; tuned-checkpoint selection is a later increment.
+comparing base and tuned checkpoints. Explicit sampler-checkpoint evaluation and matched
+development comparisons are now implemented below; production selection remains separate.
+
+## Evaluate a sampler checkpoint
+
+Use the `/sampler_weights/` path from a successfully completed training run. A full
+optimizer-state `/weights/` path is deliberately refused, even though other SDK workflows
+may support it. Native IDs such as `session-id:train:0` are supported. Queries, fragments,
+spaces, empty segments and traversal are not accepted. No missing/expired/incompatible
+checkpoint silently falls back to the base model.
+
+```powershell
+.venv\Scripts\python backend\scripts\evaluate_delivery.py --live --checkpoint "tinker://YOUR-RUN-ID:train:0/sampler_weights/YOUR-CHECKPOINT" --split validation --max-calls 13 --max-cost-usd 0.06 --output .data/evaluation/tuned-validation.json
+```
+
+This is an **explicitly paid sampling command**, not training. The placeholder is not a
+real checkpoint. The sampler's public metadata must identify `Qwen/Qwen3.5-4B` before
+tokenization, sample-cost reservation or generation. The integration follows the official
+[sampling metadata](https://tinker-docs.thinkingmachines.ai/tinker/api-reference/samplingclient/)
+and [checkpoint client](https://tinker-docs.thinkingmachines.ai/tinker/api-reference/serviceclient/)
+interfaces. Metadata lookup/client setup may wait on the SDK; the call/cost allowance is
+not an overall wall-clock deadline or guaranteed provider invoice ceiling.
+
+The application still defaults to untuned Qwen. This command neither changes the resident's
+preferences nor switches production to the checkpoint. A user-supplied path and base-model
+name are not proof of the training corpus, provenance, local export, or fine-tuning benefit.
+There is no completed trained checkpoint or new paid evaluation result from this increment.
+
+## One shared allowance for a matched pair
+
+Run both targets freshly against the same selected validation or exposed development-test
+scenarios. Training-split improvement comparisons are refused. On the current six-scenario
+validation split, each arm has 13 courier turns; both require 26 admitted worst-case calls,
+or $0.116350 under the current limits. Actual token reservations may be lower. Check the
+remaining shared $0.25 inference allowance before running; do not delete or replace its ledger.
+
+```powershell
+.venv\Scripts\python backend\scripts\evaluate_delivery.py --live --compare-checkpoint "tinker://YOUR-RUN-ID:train:0/sampler_weights/YOUR-CHECKPOINT" --split validation --max-calls 26 --max-cost-usd 0.12 --base-output .data/evaluation/matched-base.json --tuned-output .data/evaluation/matched-tuned.json --output .data/evaluation/matched-comparison.json
+```
+
+Both explicit limits cover **the entire pair**, not one allowance per model. Preflight
+requires enough allowance for both complete arms and checks the persistent inference cap.
+Each actual sample still uses the existing ledger. Concurrent UI sampling can consume
+remaining credit and interrupt an arm; it does not increase the cap. Failures stay reserved.
+No training ledger is reset or consumed by this command.
+
+The base arm runs first. If it lacks complete attempted model-plan evidence, the tuned arm
+is not started: its artifact explicitly says `not-run-NO-INFERENCE`. If the tuned arm fails
+or the reports cannot be matched, its individual report remains diagnostic and the comparison
+artifact says `comparable=false`. Provider/corpus/source failures are not successes, and
+missing turns are not dropped to improve a percentage. There is no automatic paid retry,
+resume, winner declaration or model promotion.
+
+## Compare saved reports for free
+
+```powershell
+.venv\Scripts\python backend\scripts\evaluate_delivery.py --compare-reports .data/evaluation/matched-base.json .data/evaluation/matched-tuned.json --output .data/evaluation/saved-comparison.json
+```
+
+Offline comparison does not load `.env`, open a budget ledger, read the dataset again,
+download model files or initialize Tinker. Input/output reports must be `.json` under
+ignored `.data/evaluation/`; use new output filenames. Historical reports without the new
+binding, oracle outputs, train reports, partial runs and mismatched reports are refused.
+Keep the historical untuned baseline unchanged; it cannot be relabelled a matched pair.
+
+Eligibility binds the corpus hash, selected scenario content/order, split, system prompt,
+plan schema, production/evaluation source hashes, actual installed dependency versions and
+decoding settings. Explicit base/tuned identities are separate from their shared binding.
+Sources/environment are checked before and after replay, and the command refuses corpus
+drift. Serialized metadata is an assertion, not signed proof that a provider was called.
+
+Comparison recomputes metrics from complete step rows rather than trusting saved aggregate
+percentages. It reports sample counts, base/tuned values and deltas for checked success,
+strict plan agreement, annotated unsafe proposals/authorizations and text-model latency,
+plus paired per-scenario outcomes. Negative deltas are retained; verified receipts remain
+unavailable. No arbitrary pass percentage automatically qualifies a checkpoint for deployment.
+
+These are small synthetic development probes. Candidate test examples are already exposed,
+not a pristine final holdout. Model-conditioned histories can diverge; scripted short answers
+may become unnatural when an earlier response differs. Sampling at temperature 0.2 without
+a fixed sampling seed is nondeterministic. Serial base-first order, warm-up, caching and hosted
+load confound latency; a single pair does not establish causal speedup or statistical benefit.
+Review failures and test finalists with adaptive human role-play before any real unattended use.
 
 ## What the metrics mean
 
@@ -111,13 +193,14 @@ Draft seeds and any unresolved reference/checker failures deliberately block thi
 policy labels, fix application defects separately, then explicitly update review status. Exporting
 validation/test cases as training is refused. The target is typed planner JSON, always including an
 observation object, paired with the production prompt and actual reference replay history. Scenario
-metadata/rationale stay outside the messages and are not model instructions. Masking/tokenization,
-LoRA training, checkpoint export and a tuned-model comparison are not implemented by this command.
+metadata/rationale stay outside the messages and are not model instructions. Supervised export
+itself does not tokenize, train LoRA or save checkpoints. Matched model comparison uses the
+separate command modes described above.
 
 The separate [training workflow](training.md) now implements completion-only tokenization,
 offline cost previews and explicitly admitted LoRA execution. It does not run automatically
 from evaluation, and draft labels still block prepared/live jobs. Tuned-checkpoint comparison
-and production model selection remain a later increment.
+is implemented above; production model selection remains a later increment.
 
 The dataset's current sources and review state must be reported honestly in the submission. Do not
 claim a fine-tuning benefit until comparable base/tuned measurements exist.

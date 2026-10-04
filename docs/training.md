@@ -122,8 +122,9 @@ is for a future explicit resume; only `/sampler_weights/` is suitable for sampli
 Checkpoint saving does not establish local adapter export, local inference, or
 deployment. Expired checkpoints cannot be assumed available later.
 
-Tuned-checkpoint evaluation/selection is the next increment. Compare base and tuned
-plans under the same corpus, prompt, policy, decoding and scoring fingerprints;
+Explicit [tuned-checkpoint evaluation and matched comparison](evaluation.md) are now
+implemented. Production selection is still separate. Compare base and tuned plans
+under the same corpus, prompt, policy, dependency, decoding and scoring fingerprints;
 reserve sampling separately. Report model-plan quality as well as checked behavior,
 latency, failures and small sample counts. Do not describe the existing historical
 base baseline as a matched experiment after policy/source changes, and do not claim

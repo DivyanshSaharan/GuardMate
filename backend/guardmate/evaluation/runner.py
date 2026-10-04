@@ -1,6 +1,8 @@
 import hashlib
+import importlib.metadata
 import json
 import math
+import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -18,6 +20,7 @@ from ..agent.provider import (
     MODEL,
     ModelUnavailable,
     PlanProvider,
+    validate_sampler_checkpoint,
 )
 from ..agent.store import ConversationStore
 from ..context import build_context
@@ -27,6 +30,134 @@ from .schema import AdvanceStep, ContextStep, CourierStep, ResidentStep, Scenari
 
 # Same conservative rates/limits as the current production adapter, not a billing quote.
 WORST_CALL_MICRODOLLARS = math.ceil(MAX_INPUT_TOKENS * 0.33 + MAX_OUTPUT_TOKENS * 1.005)
+
+EVALUATION_SOURCE_PATHS = (
+    "backend/guardmate/models.py",
+    "backend/guardmate/context.py",
+    "backend/guardmate/agent/models.py",
+    "backend/guardmate/agent/prompts.py",
+    "backend/guardmate/agent/engine.py",
+    "backend/guardmate/agent/dialogue.py",
+    "backend/guardmate/agent/provider.py",
+    "backend/guardmate/agent/store.py",
+    "backend/guardmate/evaluation/dataset.py",
+    "backend/guardmate/evaluation/schema.py",
+    "backend/guardmate/evaluation/runner.py",
+    "backend/guardmate/evaluation/metrics.py",
+    "backend/guardmate/evaluation/comparison.py",
+    "backend/scripts/evaluate_delivery.py",
+)
+
+
+class EvaluationBindingError(ValueError):
+    """A report cannot claim a stable, fully identified evaluation environment."""
+
+
+def _selected_scenarios_sha256(scenarios: list[Scenario]) -> str:
+    canonical = json.dumps(
+        [scenario.model_dump(mode="json") for scenario in scenarios],
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def _legacy_fingerprints() -> dict:
+    # Keep the original keys/encoding for historical-report diagnostics.
+    return {
+        "system_prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
+        "plan_schema_sha256": hashlib.sha256(
+            json.dumps(AgentPlan.model_json_schema(), sort_keys=True).encode()
+        ).hexdigest(),
+        "source_sha256": {
+            name: hashlib.sha256(
+                (Path(__file__).resolve().parents[1] / "agent" / name).read_bytes()
+            ).hexdigest()
+            for name in ("engine.py", "dialogue.py", "provider.py", "prompts.py")
+        },
+        "model": MODEL,
+        "temperature": 0.2,
+        "max_input_tokens": MAX_INPUT_TOKENS,
+        "max_output_tokens": MAX_OUTPUT_TOKENS,
+        "thinking": False,
+    }
+
+
+def _source_sha256() -> dict[str, str]:
+    root = Path(__file__).resolve().parents[3]
+    try:
+        return {
+            name: hashlib.sha256((root / name).read_bytes()).hexdigest()
+            for name in EVALUATION_SOURCE_PATHS
+        }
+    except OSError:
+        # No partial binding, and do not expose a path or untrusted filesystem error.
+        raise EvaluationBindingError(
+            "Evaluation source files could not be fingerprinted."
+        ) from None
+
+
+def _dependency_versions() -> dict[str, str | None]:
+    versions = {}
+    for package in ("tinker", "transformers", "jinja2", "pydantic"):
+        try:
+            versions[package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            versions[package] = None
+    return versions
+
+
+def _evaluation_target(provider: PlanProvider, mode: str) -> dict:
+    underlying = provider
+    while isinstance(underlying, BoundedProvider | RecordingProvider):
+        underlying = underlying.provider
+    if (
+        mode == "oracle"
+        and not isinstance(provider, GoldPlanProvider)
+        or mode != "oracle"
+        and isinstance(underlying, GoldPlanProvider)
+    ):
+        raise ValueError(
+            "Oracle results must be labelled oracle and cannot masquerade as a baseline."
+        )
+    checkpoint = getattr(underlying, "sampler_checkpoint", None)
+    if checkpoint is not None:
+        checkpoint = validate_sampler_checkpoint(checkpoint)
+    if mode == "live-tuned-model" and checkpoint is None:
+        raise ValueError("Tuned evaluation requires an explicit sampler checkpoint.")
+    if mode != "live-tuned-model" and checkpoint is not None:
+        raise ValueError("A sampler checkpoint cannot be labelled base-model or oracle evaluation.")
+    return {
+        "kind": {"oracle": "oracle", "live-base-model": "base", "live-tuned-model": "tuned"}[mode],
+        "base_model": MODEL,
+        "sampler_checkpoint": checkpoint,
+    }
+
+
+def _evaluation_binding(
+    scenarios: list[Scenario], corpus_sha256: str, split: str, fingerprints: dict
+) -> dict:
+    return {
+        "version": 1,
+        "corpus_sha256": corpus_sha256,
+        "split": split,
+        "selected_ids": [scenario.id for scenario in scenarios],
+        "selected_scenarios_sha256": _selected_scenarios_sha256(scenarios),
+        "source_sha256": _source_sha256(),
+        "system_prompt_sha256": fingerprints["system_prompt_sha256"],
+        "plan_schema_sha256": fingerprints["plan_schema_sha256"],
+        "base_model": MODEL,
+        "temperature": 0.2,
+        "max_input_tokens": MAX_INPUT_TOKENS,
+        "max_output_tokens": MAX_OUTPUT_TOKENS,
+        "thinking": False,
+        "dependency_versions": _dependency_versions(),
+        "decoding": {
+            "num_samples": 1,
+            "stop": ["<|im_end|>"],
+            "sampling_seed": None,
+        },
+    }
 
 
 class EvaluationBudgetStop(ModelUnavailable):
@@ -262,21 +393,40 @@ def run_scenario(scenario: Scenario, provider: PlanProvider, directory: Path) ->
     }
 
 
-def run_evaluation(scenarios: list[Scenario], provider: PlanProvider, mode: str) -> dict:
-    if mode not in ("oracle", "live-base-model"):
+def run_evaluation(
+    scenarios: list[Scenario],
+    provider: PlanProvider,
+    mode: str,
+    *,
+    corpus_sha256: str | None = None,
+    split: str | None = None,
+) -> dict:
+    if mode not in ("oracle", "live-base-model", "live-tuned-model"):
         raise ValueError("Unsupported evaluation mode.")
-    underlying = provider
-    while isinstance(underlying, BoundedProvider | RecordingProvider):
-        underlying = underlying.provider
-    if (
-        mode == "oracle"
-        and not isinstance(provider, GoldPlanProvider)
-        or mode != "oracle"
-        and isinstance(underlying, GoldPlanProvider)
-    ):
-        raise ValueError(
-            "Oracle results must be labelled oracle and cannot masquerade as a baseline."
-        )
+    target = _evaluation_target(provider, mode)
+    bound = corpus_sha256 is not None or split is not None
+    if bound:
+        if not isinstance(corpus_sha256, str) or not re.fullmatch(
+            r"[a-fA-F0-9]{64}", corpus_sha256
+        ):
+            raise EvaluationBindingError("Evaluation requires a 64-character corpus SHA-256.")
+        if split not in ("train", "validation", "test"):
+            raise EvaluationBindingError("Evaluation requires an explicit supported split.")
+        if not scenarios or any(scenario.split != split for scenario in scenarios):
+            raise EvaluationBindingError("Every selected scenario must belong to the stated split.")
+        selected_ids = [scenario.id for scenario in scenarios]
+        if any(not identifier for identifier in selected_ids) or len(selected_ids) != len(
+            set(selected_ids)
+        ):
+            raise EvaluationBindingError("Selected scenario IDs must be nonempty and unique.")
+        corpus_sha256 = corpus_sha256.lower()
+
+    # Snapshot before any generation; a post-replay-only hash could bind a result to
+    # code or annotations that were never used for that replay.
+    fingerprints = _legacy_fingerprints()
+    selected_sha256 = _selected_scenarios_sha256(scenarios)
+    model = provider.status().model
+    binding = _evaluation_binding(scenarios, corpus_sha256, split, fingerprints) if bound else None
     results = []
     skipped = []
     with TemporaryDirectory(prefix="guardmate-eval-") as temporary:
@@ -288,6 +438,25 @@ def run_evaluation(scenarios: list[Scenario], provider: PlanProvider, mode: str)
             ):
                 skipped = [remaining.id for remaining in scenarios[index + 1 :]]
                 break  # No automatic retries or continuing to spend after a provider failure.
+    final_fingerprints = _legacy_fingerprints()
+    final_binding = (
+        _evaluation_binding(scenarios, corpus_sha256, split, final_fingerprints) if bound else None
+    )
+    try:
+        final_target = _evaluation_target(provider, mode)
+    except ValueError:
+        raise EvaluationBindingError("Evaluation target changed during replay.") from None
+    if (
+        final_fingerprints != fingerprints
+        or final_binding != binding
+        or _selected_scenarios_sha256(scenarios) != selected_sha256
+        or final_target != target
+        or provider.status().model != model
+    ):
+        raise EvaluationBindingError(
+            "Evaluation inputs, source or target changed during replay; "
+            "no stable report is available."
+        )
     summary = summarize_results(results)
     if mode == "oracle":
         # Reference replay is not evidence of a model's correctness, latency or safety.
@@ -296,31 +465,16 @@ def run_evaluation(scenarios: list[Scenario], provider: PlanProvider, mode: str)
             "reference_step_success": summary["checked_step_success"],
             "stopped_scenarios": summary["stopped_scenarios"],
         }
-    return {
+    report = {
         "mode": mode,
-        "model": provider.status().model,
+        "model": model,
+        "target": target,
         "requested_scenarios": len(scenarios),
         "evaluated_scenarios": len(results),
         "skipped_scenario_ids": skipped,
         "summary": summary,
         "results": results,
-        "fingerprints": {
-            "system_prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
-            "plan_schema_sha256": hashlib.sha256(
-                json.dumps(AgentPlan.model_json_schema(), sort_keys=True).encode()
-            ).hexdigest(),
-            "source_sha256": {
-                name: hashlib.sha256(
-                    (Path(__file__).resolve().parents[1] / "agent" / name).read_bytes()
-                ).hexdigest()
-                for name in ("engine.py", "dialogue.py", "provider.py", "prompts.py")
-            },
-            "model": MODEL,
-            "temperature": 0.2,
-            "max_input_tokens": MAX_INPUT_TOKENS,
-            "max_output_tokens": MAX_OUTPUT_TOKENS,
-            "thinking": False,
-        },
+        "fingerprints": fingerprints,
         "limitations": [
             "Scripted synthetic-seed replay; not adaptive human role-play or field effectiveness.",
             "Exact reference-plan match is one rubric, not the only acceptable natural dialogue.",
@@ -329,3 +483,11 @@ def run_evaluation(scenarios: list[Scenario], provider: PlanProvider, mode: str)
             "Time is simulated; latency is text-model/policy time, not spoken response latency.",
         ],
     }
+    if binding is not None:
+        report["evaluation_binding"] = binding
+    else:
+        report["limitations"].append(
+            "No explicit corpus hash and split binding; this report is diagnostic, "
+            "not eligible for paired comparison."
+        )
+    return report
