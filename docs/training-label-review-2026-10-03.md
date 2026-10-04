@@ -1,5 +1,11 @@
 # Train-only policy and label review — October 3, 2026
 
+Historical review state: the findings below describe the original all-draft
+corpus. On October 4 the project owner explicitly approved the 15 fictional train
+records, including resident confirmation for fragile-parcel concerns. Only their
+review flags changed; see the [pilot report](pilot-2026-10-04.md). This approval is
+not friend validation, and validation/test records remain draft.
+
 This is an **AI-assisted policy/label review**, not human approval, friend validation,
 a live-model evaluation, or evidence from real delivery calls. No source labels or
 review-status flags were changed by this review. **All source seeds remain draft.**

@@ -5,9 +5,10 @@ selection now uses the same hosted Tinker provider, permission checks, conversat
 and persistent $0.25 estimated-inference ledger. This does not implement local Qwen
 inference, automatic checkpoint promotion or connected phone calls.
 
-No training has run, no tuned checkpoint has been selected, and no fine-tuning
-benefit is claimed by this increment. Label/policy approval and explicitly bounded
-paid training/evaluation are still separate steps.
+The first approved training/evaluation run is documented in the
+[October 4 pilot report](pilot-2026-10-04.md). No tuned checkpoint is automatically
+selected, and configuration alone cannot establish a fine-tuning benefit.
+Label/policy approval and bounded paid experiments remain separate steps.
 
 ## Choose a checkpoint explicitly
 

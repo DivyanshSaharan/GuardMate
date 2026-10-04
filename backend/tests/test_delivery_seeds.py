@@ -17,7 +17,13 @@ def test_repository_dataset_provenance_and_splits():
         "synthetic_authored": 24,
         "user_reported_seed_synthetic_expansion": 3,
     }
-    assert all(case.review_status == "draft" for case in scenarios)
+    # The user approved only these 15 fictional train seeds for the October 4 pilot.
+    # Held-out review status is not silently promoted by training approval.
+    assert Counter(case.review_status for case in scenarios) == {"reviewed": 15, "draft": 12}
+    assert all(
+        case.review_status == ("reviewed" if case.split == "train" else "draft")
+        for case in scenarios
+    )
     assert not dataset_summary(DATASET, scenarios)["cross_split_similarity_warnings"]
 
 

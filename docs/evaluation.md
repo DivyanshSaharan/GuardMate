@@ -101,7 +101,8 @@ not an overall wall-clock deadline or guaranteed provider invoice ceiling.
 The application still defaults to untuned Qwen. This command neither changes the resident's
 preferences nor switches production to the checkpoint. A user-supplied path and base-model
 name are not proof of the training corpus, provenance, local export, or fine-tuning benefit.
-There is no completed trained checkpoint or new paid evaluation result from this increment.
+See the [October 4 pilot report](pilot-2026-10-04.md) for actual execution outcomes;
+the comparison mechanism alone establishes no training or model-quality result.
 
 ## One shared allowance for a matched pair
 

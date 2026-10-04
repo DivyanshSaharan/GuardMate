@@ -1,8 +1,8 @@
 # Bounded LoRA pilot
 
 GuardMate now has an offline-first, train-only preparation command and an explicitly
-opt-in hosted Tinker training runner. **No fine-tuning has been executed by this
-increment.** The application still uses untuned Qwen3.5-4B. A checkpoint is not
+opt-in hosted Tinker training runner. The first owner-approved run is recorded in
+the [October 4 pilot report](pilot-2026-10-04.md). The application still uses untuned Qwen3.5-4B. A checkpoint is not
 automatically selected for production or treated as an improvement.
 
 ## Preview without spending
@@ -37,7 +37,8 @@ Verify rates and the actual remaining promo balance before enabling paid work.
 
 Only train-split courier turns from a fully passing authored-reference replay enter
 the recipe. Validation/test targets are never tokenized into training datums. An
-oracle replay is not a model baseline. The corpus is still draft: see the
+oracle replay is not a model baseline. The owner approved the 15 fictional train
+seeds for the October 4 pilot; the 12 validation/test seeds remain draft. See the
 [AI-assisted label review](training-label-review-2026-10-03.md) and
 [dataset card](../datasets/delivery/DATASET_CARD.md).
 
@@ -64,9 +65,11 @@ The runner rebuilds the preview before admission; edited or stale jobs are refus
 
 ## Review gate
 
-All source seeds remain `draft`. AI-assisted consistency review is not human approval
-or friend validation. Review the train labels and provisional fragile-item policy,
-then explicitly mark only accepted train records `reviewed`. Do not promote held-out
+The 15 train seeds are now `reviewed` following the owner's explicit October 4
+approval, including resident confirmation for fragile-parcel concerns. This is
+approval of fictional pilot targets, not friend validation. AI-assisted consistency
+review alone cannot grant approval. New or changed train labels need fresh review;
+mark only explicitly accepted train records `reviewed`. Do not promote held-out
 labels to training or claim fictional expansions are observed courier transcripts.
 
 Once review is complete, export a new job:

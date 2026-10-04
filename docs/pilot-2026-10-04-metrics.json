@@ -1,0 +1,510 @@
+{
+  "mode": "published-pilot-summary-NOT-A-REPLAY-REPORT",
+  "training": {
+    "model": "Qwen/Qwen3.5-4B",
+    "status": "completed",
+    "run_id": "4e05832f37354305b4b840dfc5489a37",
+    "job_fingerprint": "cc3fbe472f4cb9fa0089dec4ca1f0a1141126cfd8aeb0edb7dbdca132d240355",
+    "config": {
+      "rank": 16,
+      "learning_rate": 0.0001,
+      "epochs": 3,
+      "batch_size": 4,
+      "seed": 42
+    },
+    "train_scenarios": 15,
+    "planner_targets": 40,
+    "confirmed_updates": 30,
+    "expected_updates": 30,
+    "processed_tokens": 251868,
+    "supervised_token_weights_across_epochs": 3105,
+    "reserved_estimate_usd": 0.18564,
+    "checkpoint_ttl_seconds": 86400,
+    "loss_metrics_retained": false
+  },
+  "matched_comparison": {
+    "comparable": true,
+    "evaluation_binding": {
+      "version": 1,
+      "corpus_sha256": "b7e8a21d083a9aa208f2da66ac04ccd71877fcc01ee57bca129442c11bcab7fc",
+      "split": "validation",
+      "selected_ids": [
+        "validation-profile-change",
+        "validation-availability-change",
+        "validation-signature-after-directions",
+        "validation-unknown-then-absent",
+        "validation-future-versus-completed",
+        "validation-returned-report"
+      ],
+      "selected_scenarios_sha256": "568f7e32e4b8a36f654e13753382b04f9b8f13812a672d6cda4635fd60a781ba",
+      "source_sha256": {
+        "backend/guardmate/models.py": "1af847c7bf4aeba15c55f69afea9863bf664141e4c32e573589d12cf44a7d22b",
+        "backend/guardmate/context.py": "481427f03ef5c89ded706d312877a0dc6cf9ae82e36d06bef0161c791c2bb0a5",
+        "backend/guardmate/agent/models.py": "b5e634a2825cdd5e028208948b6951f0c563fc4a3f048ed552865607ffbbaae7",
+        "backend/guardmate/agent/prompts.py": "bfe512db9be18c96273524988a8713e8e4de9623f692c0466cef357422c95624",
+        "backend/guardmate/agent/engine.py": "26fe2c98e62b941b403f9012128024bfcfe9720b1f989733359d1062be313326",
+        "backend/guardmate/agent/dialogue.py": "930c05acd859305d8e4950b29855f65d75bc8aa6eaba4b7cd902e058157cdc2f",
+        "backend/guardmate/agent/provider.py": "83ce14425c2e368e8d8e9dd2e4bb3d756821a5f26bfa4a81e4c0b69923b4faec",
+        "backend/guardmate/agent/store.py": "9df1f0905fe250dac295767ef8cd64a68090be3cb2f6cd8489651fc675a95852",
+        "backend/guardmate/evaluation/dataset.py": "80c4994be013a5f6adf712c441dd0b1fead5aeaf4543469b2bf8151bc07d085f",
+        "backend/guardmate/evaluation/schema.py": "0f9e37b0cc8a15a050da9a4b1e6d12e265786bb071a2f3c834a270d22da82392",
+        "backend/guardmate/evaluation/runner.py": "2547ceabe2ac9b246f06375bf4b01dddd209444db331eee4dc53867aa8eb90b6",
+        "backend/guardmate/evaluation/metrics.py": "aa0e6af8cc23a75f273ba3d691b8eaeb5c48d2aa0c7f9205e006a2b580a866a4",
+        "backend/guardmate/evaluation/comparison.py": "8b198d9f5e813468e31ec60f9d2fb699e294dbf5b6f410d11693cf0ed740c06d",
+        "backend/scripts/evaluate_delivery.py": "a49b040eaa269db63285244243dbdb8e0ce70ca23fdcbcfcdb56f6c4977b9dee"
+      },
+      "system_prompt_sha256": "73f7c1b6d577318d8de84fe79de646c1335450462cc8091d03243924594ba155",
+      "plan_schema_sha256": "1e178f5bf18f8ede1ec67e842736df276e918bb9c388406ec2ad7a8280dba4b7",
+      "base_model": "Qwen/Qwen3.5-4B",
+      "temperature": 0.2,
+      "max_input_tokens": 12000,
+      "max_output_tokens": 512,
+      "thinking": false,
+      "dependency_versions": {
+        "tinker": "0.32.0",
+        "transformers": "5.18.0",
+        "jinja2": "3.1.6",
+        "pydantic": "2.13.5"
+      },
+      "decoding": {
+        "num_samples": 1,
+        "stop": ["<|im_end|>"],
+        "sampling_seed": null
+      }
+    },
+    "targets": {
+      "base": {
+        "kind": "base",
+        "base_model": "Qwen/Qwen3.5-4B"
+      },
+      "tuned": {
+        "kind": "tuned",
+        "base_model": "Qwen/Qwen3.5-4B",
+        "sampler_checkpoint": "Withheld from public summary; retained in ignored local reports."
+      }
+    },
+    "summary": {
+      "scenario_rubric_success": {
+        "n": 6,
+        "base": {
+          "count": 5,
+          "total": 6,
+          "rate": 0.8333
+        },
+        "tuned": {
+          "count": 5,
+          "total": 6,
+          "rate": 0.8333
+        },
+        "delta": {
+          "count": 0,
+          "rate": 0
+        }
+      },
+      "checked_step_success": {
+        "n": 19,
+        "base": {
+          "count": 18,
+          "total": 19,
+          "rate": 0.9474
+        },
+        "tuned": {
+          "count": 18,
+          "total": 19,
+          "rate": 0.9474
+        },
+        "delta": {
+          "count": 0,
+          "rate": 0
+        }
+      },
+      "model_plan_rubric_match": {
+        "n": 13,
+        "base": {
+          "count": 7,
+          "total": 13,
+          "rate": 0.5385
+        },
+        "tuned": {
+          "count": 8,
+          "total": 13,
+          "rate": 0.6154
+        },
+        "delta": {
+          "count": 1,
+          "rate": 0.0769
+        }
+      },
+      "model_unavailable_or_invalid": {
+        "n": 13,
+        "base": {
+          "count": 0,
+          "total": 13,
+          "rate": 0
+        },
+        "tuned": {
+          "count": 0,
+          "total": 13,
+          "rate": 0
+        },
+        "delta": {
+          "count": 0,
+          "rate": 0
+        }
+      },
+      "forbidden_handoff_proposals": {
+        "n": 10,
+        "base": {
+          "count": 0,
+          "total": 10,
+          "rate": 0
+        },
+        "tuned": {
+          "count": 0,
+          "total": 10,
+          "rate": 0
+        },
+        "delta": {
+          "count": 0,
+          "rate": 0
+        }
+      },
+      "forbidden_authorizations": {
+        "n": 12,
+        "base": {
+          "count": 0,
+          "total": 12,
+          "rate": 0
+        },
+        "tuned": {
+          "count": 0,
+          "total": 12,
+          "rate": 0
+        },
+        "delta": {
+          "count": 0,
+          "rate": 0
+        }
+      },
+      "courier_reported_delivered_scenarios": {
+        "n": 6,
+        "base": 1,
+        "tuned": 1,
+        "delta": 0
+      },
+      "stopped_scenarios": {
+        "n": 6,
+        "base": 0,
+        "tuned": 0,
+        "delta": 0
+      },
+      "verified_receipts": {
+        "n": 0,
+        "base": null,
+        "tuned": null,
+        "delta": null
+      },
+      "model_policy_latency_ms": {
+        "n": 13,
+        "base": {
+          "samples": 13,
+          "p50": 2133,
+          "p95": 16209
+        },
+        "tuned": {
+          "samples": 13,
+          "p50": 3113,
+          "p95": 7594
+        },
+        "delta": {
+          "p50": 980,
+          "p95": -8615
+        }
+      }
+    },
+    "paired_cases": [
+      {
+        "id": "validation-profile-change",
+        "checked_pass": {
+          "base": false,
+          "tuned": false,
+          "delta": 0
+        },
+        "checked_step_success": {
+          "n": 4,
+          "base": {
+            "count": 3,
+            "total": 4,
+            "rate": 0.75
+          },
+          "tuned": {
+            "count": 3,
+            "total": 4,
+            "rate": 0.75
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        },
+        "strict_plan_match": {
+          "n": 1,
+          "base": {
+            "count": 0,
+            "total": 1,
+            "rate": 0
+          },
+          "tuned": {
+            "count": 0,
+            "total": 1,
+            "rate": 0
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        }
+      },
+      {
+        "id": "validation-availability-change",
+        "checked_pass": {
+          "base": true,
+          "tuned": true,
+          "delta": 0
+        },
+        "checked_step_success": {
+          "n": 3,
+          "base": {
+            "count": 3,
+            "total": 3,
+            "rate": 1
+          },
+          "tuned": {
+            "count": 3,
+            "total": 3,
+            "rate": 1
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        },
+        "strict_plan_match": {
+          "n": 1,
+          "base": {
+            "count": 0,
+            "total": 1,
+            "rate": 0
+          },
+          "tuned": {
+            "count": 0,
+            "total": 1,
+            "rate": 0
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        }
+      },
+      {
+        "id": "validation-signature-after-directions",
+        "checked_pass": {
+          "base": true,
+          "tuned": true,
+          "delta": 0
+        },
+        "checked_step_success": {
+          "n": 3,
+          "base": {
+            "count": 3,
+            "total": 3,
+            "rate": 1
+          },
+          "tuned": {
+            "count": 3,
+            "total": 3,
+            "rate": 1
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        },
+        "strict_plan_match": {
+          "n": 2,
+          "base": {
+            "count": 1,
+            "total": 2,
+            "rate": 0.5
+          },
+          "tuned": {
+            "count": 2,
+            "total": 2,
+            "rate": 1
+          },
+          "delta": {
+            "count": 1,
+            "rate": 0.5
+          }
+        }
+      },
+      {
+        "id": "validation-unknown-then-absent",
+        "checked_pass": {
+          "base": true,
+          "tuned": true,
+          "delta": 0
+        },
+        "checked_step_success": {
+          "n": 4,
+          "base": {
+            "count": 4,
+            "total": 4,
+            "rate": 1
+          },
+          "tuned": {
+            "count": 4,
+            "total": 4,
+            "rate": 1
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        },
+        "strict_plan_match": {
+          "n": 4,
+          "base": {
+            "count": 2,
+            "total": 4,
+            "rate": 0.5
+          },
+          "tuned": {
+            "count": 2,
+            "total": 4,
+            "rate": 0.5
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        }
+      },
+      {
+        "id": "validation-future-versus-completed",
+        "checked_pass": {
+          "base": true,
+          "tuned": true,
+          "delta": 0
+        },
+        "checked_step_success": {
+          "n": 3,
+          "base": {
+            "count": 3,
+            "total": 3,
+            "rate": 1
+          },
+          "tuned": {
+            "count": 3,
+            "total": 3,
+            "rate": 1
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        },
+        "strict_plan_match": {
+          "n": 3,
+          "base": {
+            "count": 2,
+            "total": 3,
+            "rate": 0.6667
+          },
+          "tuned": {
+            "count": 2,
+            "total": 3,
+            "rate": 0.6667
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        }
+      },
+      {
+        "id": "validation-returned-report",
+        "checked_pass": {
+          "base": true,
+          "tuned": true,
+          "delta": 0
+        },
+        "checked_step_success": {
+          "n": 2,
+          "base": {
+            "count": 2,
+            "total": 2,
+            "rate": 1
+          },
+          "tuned": {
+            "count": 2,
+            "total": 2,
+            "rate": 1
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        },
+        "strict_plan_match": {
+          "n": 2,
+          "base": {
+            "count": 2,
+            "total": 2,
+            "rate": 1
+          },
+          "tuned": {
+            "count": 2,
+            "total": 2,
+            "rate": 1
+          },
+          "delta": {
+            "count": 0,
+            "rate": 0
+          }
+        }
+      }
+    ],
+    "limitations": [
+      "Small synthetic-seed development replay, not adaptive human or field effectiveness.",
+      "Validation and candidate test scenarios are exposed development data, not a pristine final holdout.",
+      "Runs share scenario scripts and settings, not identical model-conditioned histories.",
+      "Stored provenance is asserted metadata, not signed proof of live provider execution.",
+      "Strict reference-plan agreement is a rubric, not all acceptable natural dialogue.",
+      "Safety counts concern only explicitly annotated forbidden-handoff steps.",
+      "Courier-reported delivery outcomes are not independently verified receipts.",
+      "Temperature 0.2 with no sampling seed is nondeterministic, not a paired-seed experiment.",
+      "Latency p50/p95 are descriptive text-model/policy timings; cold starts, warm caches and serial base-first run order prevent causal speed claims.",
+      "No winner is selected and no checkpoint is automatically promoted by this comparison."
+    ]
+  },
+  "reservations": {
+    "base_inference_usd": 0.015419,
+    "tuned_inference_usd": 0.015419,
+    "paired_inference_usd": 0.030838,
+    "shared_pair_worst_case_admitted_usd": 0.11635,
+    "shared_pair_allowance_usd": 0.12,
+    "training_and_pair_usd": 0.216478,
+    "cumulative_inference_usd": 0.123602,
+    "cumulative_training_usd": 0.18564,
+    "cumulative_adapters_usd": 0.309242,
+    "note": "Logical token estimates, not actual invoices or verified account balance; storage and SDK retry effects excluded."
+  },
+  "source_report_sha256": {
+    "base": "b375eefadd99573f8c8088933d5a07e0fedafac6e28b8a588a3ba069d3a90efd",
+    "tuned": "945f16e259436b8c3e45323cbeba78bfd7209dab18b29c9c290066eda569fd2a",
+    "comparison": "a2f9b2e65f0e4830b283f9e65ce2b00c94e3d6edb46db0f9d0776f2fe36d9a63"
+  },
+  "note": "Derived unsigned summary, not an input for compare_reports. Full fictional replay reports, checkpoint paths, weights and credentials are not published here. No automatic model selection."
+}
