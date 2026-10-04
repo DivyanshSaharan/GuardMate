@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "corpus_id": "guardmate-courier-en-v1",
+  "cases": [
+    {
+      "case_id": "prepaid-confirmed",
+      "reference": "Yes, this parcel is already prepaid.",
+      "audio": "audio/prepaid-confirmed.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. Positive payment confirmation."
+    },
+    {
+      "case_id": "payment-not-prepaid",
+      "reference": "No, this parcel is not prepaid. Payment is still required.",
+      "audio": "audio/payment-not-prepaid.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. Preserve payment negation."
+    },
+    {
+      "case_id": "payment-uncertain",
+      "reference": "I don't know whether it is prepaid. Let me check the parcel label.",
+      "audio": "audio/payment-uncertain.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. Uncertainty is not positive confirmation."
+    },
+    {
+      "case_id": "security-present",
+      "reference": "Security is here and can accept the parcel in person.",
+      "audio": "audio/security-present.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. Receiver presence, not delivery completion."
+    },
+    {
+      "case_id": "security-absent",
+      "reference": "The guard is not here. Nobody is available to receive it.",
+      "audio": "audio/security-absent.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. Preserve receiver absence."
+    },
+    {
+      "case_id": "security-checking",
+      "reference": "I'm not sure whether security is there. Please wait while I check.",
+      "audio": "audio/security-checking.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. Waiting and uncertain presence."
+    },
+    {
+      "case_id": "fragile-guard-question",
+      "reference": "Item is fragile, are you sure to leave it with the guard?",
+      "audio": "audio/fragile-guard-question.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture using a user-reported question seed; not a verified courier recording or safety label."
+    },
+    {
+      "case_id": "received-completed",
+      "reference": "I gave it to the guard. Security has received the parcel.",
+      "audio": "audio/received-completed.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. Fictional completed report, not verified receipt."
+    },
+    {
+      "case_id": "received-negated",
+      "reference": "I have not handed it over. Security has not received the parcel.",
+      "audio": "audio/received-negated.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. Preserve negated completion."
+    },
+    {
+      "case_id": "handoff-future",
+      "reference": "I will give it to the guard when security arrives.",
+      "audio": "audio/handoff-future.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. Future intention is not completed delivery."
+    },
+    {
+      "case_id": "guard-room-question",
+      "reference": "Where is the guard room?",
+      "audio": "audio/guard-room-question.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture using a literal user-reported question seed, not a verified spoken transcript."
+    },
+    {
+      "case_id": "pg-location-question",
+      "reference": "Where is your pg located?",
+      "audio": "audio/pg-location-question.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture using a literal user-reported question seed; no real address is included."
+    },
+    {
+      "case_id": "entrance-directions",
+      "reference": "I'm at the main entrance of Cedar PG. Which way is the guard room?",
+      "audio": "audio/entrance-directions.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; Cedar PG is fictional. Direction questions do not grant handoff permission."
+    },
+    {
+      "case_id": "brief-yes",
+      "reference": "Yes.",
+      "audio": "audio/brief-yes.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. A short ASR target, not context-free authorization."
+    },
+    {
+      "case_id": "brief-no",
+      "reference": "No.",
+      "audio": "audio/brief-no.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no recording exists. A short negation target, not a parcel-policy label."
+    },
+    {
+      "case_id": "label-directions-question",
+      "reference": "The PG address is on the parcel box. How do I reach the entrance from here?",
+      "audio": "audio/label-directions-question.wav",
+      "provenance": "fictional_human",
+      "note": "Planned human fixture; no address is provided. The question is authored, not evidence that the app can read the box."
+    }
+  ]
+}

@@ -16,3 +16,4 @@ __pycache__/
 *.sqlite3-wal
 models/
 checkpoints/
+datasets/speech/audio/
