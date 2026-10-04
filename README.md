@@ -1,112 +1,148 @@
 # GuardMate
 
-A personal AI delivery assistant built for a friend who lives in a PG. The intended voice agent talks to couriers, follows approved guard-room instructions and asks for help when a handoff needs the resident's decision.
+An AI delivery assistant for a friend who lives in a paying guest accommodation
+(PG) and keeps getting courier calls while at the office.
 
-## Current functionality
+His usual answer: **hand the prepaid parcel to security at the guard room near
+the entrance**. Missed calls sometimes mean returned parcels. GuardMate turns that
+repeated instruction into a conversation that remembers the delivery, knows when
+he is home, and asks him before changing the handoff plan.
 
-GuardMate saves the resident's PG instructions, weekly office routine, daily availability override and expiring delivery-mode window. Preferences are stored in a local SQLite database and survive application restarts. Schedule calculations use Asia/Kolkata; daily overrides expire at local midnight.
+Built for **Hacktoberfest 2026 · Build for a Friend**.
 
-The text role-play panel now runs Qwen3.5-4B through Tinker. The model plans each next conversational action using the full dialogue, parcel facts, fresh availability and resident approval state. The application validates the plan, checks permission and returns grounded instructions. Conversation history and action traces persist locally. There is no scripted model fallback in production.
+[DEV submission draft](docs/dev-submission.md) · [Submission checklist](docs/submission-checklist.md)
 
-Short answers are grounded against the outstanding question before the model sees the updated conversation. “Don't know” and “let me check” preserve that question and get a waiting acknowledgment, not another copy of the question. Known facts cannot be erased or re-asked by an omitted model observation or stale clarification. Old role-play sessions recover clear answers from their saved transcript on the next turn. The trace distinguishes Qwen's proposed action from the application action actually executed.
+## Demo
 
-The English grounding checks recognize `pre paid` and `pre-paid`, including tested negative and uncertain forms. Positive model observations must also be supported by the surrounding assertion, not a quoted positive word stripped of its negation or uncertainty. After an authorized handoff, `I gave it to the guard.` can record a courier-reported delivery; tested future plans, questions, negated reports and unrelated guard activities cannot. These are limited application-checker regressions, not model training or general language-understanding guarantees.
+- [Product walkthrough — video (MP4)](docs/media/guardmate-demo.mp4)
+- [Call recording — audio (MP3)](docs/media/guardmate-call-recording.mp3)
 
-Sending immediately clears the composer, displays the courier's outgoing message and shows an in-dialog waiting indicator. Sending is locked until the request completes; failure restores the draft and flags uncertain delivery rather than automatically retrying. Typing stays local to the composer and does not rerender the transcript.
+Open either file on GitHub, or use its download/raw-file control if playback is
+not available. The call recording is shared with all speakers' permission.
 
-The high-contrast **End role-play** stop button sits beside **Start role-play** above the chat, including on narrow screens. Ending keeps saved history and ends only the selected role-play.
+## What it does
 
-Multiple couriers now have separate named role-plays. Enter a fictional **New courier label** and start another without ending the first. Use **Saved role-play** to return to either conversation. UUIDs, not labels or phone numbers, isolate each transcript, parcel facts, approvals, handoff permission, turn limit and outcome. Duplicate labels still create separate IDs. Labels are local test metadata, never caller verification, resident authority or model instructions.
+- Saves PG directions, guard-room instructions, office days and today's availability.
+- Uses Qwen to plan multi-turn conversations, not just classify a message.
+- Isolates each courier's history, parcel facts and resident decisions.
+- Checks model proposals against saved instructions before speaking a reply.
+- Requires expiring resident approval for an alternative location; pauses on
+  payment, OTP, signature and high-value exceptions.
+- Supports text and local browser voice role-play, plus a Windows Phone Link call path.
+- Provides experimental automatic turn-taking **after you manually answer**.
 
-The selector loads the latest 50 saved session summaries (API limit 1–100), without transcripts or parcel facts. Previously selected or newly opened sessions remain available in the current panel. Old unlabeled sessions use their short ID as a display name and remain readable without rewriting the database. The browser remembers the selected ID across reloads; each courier's unsent draft stays separate in memory while the panel remains open. Switching always reads that session's fresh saved state. Sends, starts and switching are serialized in this single-panel prototype; switching is disabled while a response is pending. Late responses and stale polls cannot replace another courier's conversation.
+Courier-reported delivery is not independently verified receipt. GuardMate does
+not answer or hang up calls automatically.
 
-Pending approvals in unselected sessions appear in the selector. Session-list reads and approval polls expire stale approvals without model requests. Creating, listing, switching and ending sessions do not invoke Qwen or consume inference credit. The existing delivery-mode requirement still applies when starting a new role-play.
+## Open AI at the core
 
-Automatic caller identification, call-to-session routing, multi-device resident authentication and parallel live call processing remain future increments. A real call must get a new session per call/delivery; a masked or repeated telephone number must not be used to reuse parcel facts or approval.
+The planner uses open-weight **Qwen3.5-4B** through Tinker. **whisper.cpp** transcribes
+speech locally; **Piper** generates replies locally. The model proposes structured
+actions, and GuardMate's application checks decide what can execute.
 
-Alternative locations require an explicit, single-use resident approval. Approvals expire after 90 seconds and are invalidated when resident settings change. Courier claims such as “I am the owner” cannot grant approval. OTP, signature, payment and high-value exceptions pause the agent. Delivery outcomes are labelled **courier-reported**, never verified receipt.
+```text
+Courier audio → local Whisper → Qwen planner → permission checks → local Piper → caller
+                                   ↑
+                  saved instructions, routine and conversation
+```
 
-The role-play now has opt-in browser speech: record up to 30 seconds, review local Whisper transcription before sending, and explicitly play the latest checked reply with local Piper. Recording/playback are mutually exclusive and stay isolated across sessions. Speech workers use temporary audio, bounded CPU jobs and no model API credentials. Qwen planning remains hosted and untuned. See [browser voice setup and measured limits](docs/browser-voice.md).
+Open components let us inspect the voice pipeline, replay audio against different
+local models, and fine-tune the planner on delivery-specific examples. Raw audio
+need not go to a cloud speech service. The planner is still hosted: recognized
+text, conversation history and saved resident context go to Tinker.
+**The complete application is not offline.**
 
-Automatic call answering and transfer are not implemented. The browser remains a role-play interface; an optional manually answered Windows call runner is described below.
+| Layer                      | Stack                                             |
+| -------------------------- | ------------------------------------------------- |
+| Dashboard                  | React, TypeScript, Vite                           |
+| Backend and persistence    | FastAPI, Pydantic, SQLite                         |
+| Planning and LoRA training | Qwen3.5-4B, Tinker                                |
+| Local speech               | whisper.cpp `base.en`, Piper                      |
+| Tested cellular route      | Windows Phone Link, pinned WDM-KS Bluetooth audio |
 
-A separate [Windows cellular-audio probe](docs/cellular-audio-probe.md) now inspects
-explicit phone audio endpoints and provides opt-in, bounded recording/playback for
-a consenting test call. On a vivo T2x 5G, the user confirmed caller audio in a
-five-second WDM-KS recording and reported the identifiable phrase and final number
-from synthetic transmission. Directions were tested separately; the standalone
-probe did not establish simultaneous duplex, full-phrase intelligibility or
-autonomous call handling.
-The probe never falls back to the laptop microphone/speaker or invokes Qwen.
+## Demonstrated results
 
-An [operator-controlled cellular conversation runner](docs/manual-cellular-call.md)
-now connects the selected phone audio route to local Whisper transcription, the
-existing checked Qwen conversation and local Piper replies. Each run creates a
-fresh session. Transcripts need review and an explicit send; call answer/hangup
-remain manual. Hosted transcript/context consent, an active delivery window and
-fresh reply checks are required. Offline tests cover the integration. In the
-[first consenting live call](docs/live-cellular-test-2026-10-04.md), the caller
-confirmed the full greeting and three checked replies from actual base-Qwen turns.
-Speech recognition remained unreliable, and an ambiguous outcome was rejected
-rather than recorded as delivery. Unattended operation is not implemented; further
-hosted/live tests require fresh agreement.
+**One integrated, consenting fictional phone call** worked on a vivo T2x 5G
+(Android 15). The caller heard the full greeting and three checked replies from
+actual Qwen turns. The operator answered and reviewed transcripts. An ambiguous
+final transcript was rejected instead of recording a completed delivery. Human
+audio worked in both directions afterward.
+[Live-call report](docs/live-cellular-test-2026-10-04.md).
 
-An experimental [automatic conversation mode](docs/automatic-cellular-call.md)
-now removes per-turn `listen`/`send` commands after manual answering. It uses a
-bounded energy endpointer, local ASR, explicit startup consent for automatic
-**unreviewed transcript** uploads, and the existing checked Qwen/Piper path.
-Silence, clipping, approval, errors, stale context and turn/time limits stop the
-loop; pending resident decisions remain saved. Speech recognition is still
-unreliable, and this new mode is for supervised fictional testing only, not
-unattended real couriers. Automatic mode has not been tested on a live call.
+**One LoRA pilot** completed 30 updates on 40 fictional planner targets. A fresh,
+matched six-scenario development comparison produced:
 
-An offline-first LoRA workflow now previews completion-only, train-split planner targets
-and estimates the full schedule before any hosted work. Reviewed labels and explicit
-cost/update/retry acknowledgements are required for training. Persistent reservations
-and isolated execution preserve uncertain runs without replaying them. No fine-tuning
-has run yet; see the [training guide](docs/training.md).
+| Metric                           | Base    | Tuned   |
+| -------------------------------- | ------- | ------- |
+| Strict planner agreement         | 7/13    | 8/13    |
+| Checked scenario success         | 5/6     | 5/6     |
+| Median text-model/policy latency | 2.133 s | 3.113 s |
 
-Evaluation can now load an explicit sampler checkpoint, verify its base-model identity
-and compare freshly matched base/tuned development replays using one shared inference
-allowance. Saved reports can also be compared offline; incomplete, historical, oracle
-or mismatched reports cannot become improvement claims. Evaluation does not switch production,
-and no tuned-model results exist yet. See the [evaluation guide](docs/evaluation.md).
+This is a small planner-agreement gain, **not a demonstrated functional or speed
+improvement**. These are exposed fictional development cases, not field accuracy.
+The recorded live call used base Qwen; the pilot did not automatically promote a
+checkpoint. [Pilot report](docs/pilot-2026-10-04.md).
 
-Role-play model selection is now an explicit backend-only configuration. Base Qwen remains
-the default; an optional sampler checkpoint has separate selection/identity-verification
-status, with no silent fallback. New model turns save their own provider/checkpoint identity
-in the action trace, so changing configuration cannot relabel historical turns. See the
-[model-selection guide](docs/model-selection.md). No checkpoint has been selected here.
+The demo's fixed “Tinker Fine-Tuned Model” heading is a presentation label, not
+runtime evidence. Saved action traces record the actual model/checkpoint used.
+
+Automatic turn-taking has offline regression coverage but has **not** been tested
+on a live call. Transcription errors remain the biggest reliability issue.
 
 ## Run locally
 
-Use Node.js 22.12+ (or a newer supported Node release) and Python 3.13+. The current setup was tested with Node.js 26 and Python 3.13 on Windows.
-
+Use Python 3.13+ and Node.js 22.12+; development has been tested on Windows.
 From the repository root:
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\python -m pip install -r backend\requirements-dev.txt
-npm install
+.venv\Scripts\python -m pip install -r backend\requirements-ai.txt
+npm ci
+Copy-Item .env.example .env
 ```
 
-Start the backend in one terminal:
+Add your `TINKER_API_KEY` to the ignored `.env` file. Keep it out of frontend code.
+Text conversations need hosted inference credit; offline tests do not.
+
+Start the backend:
 
 ```powershell
 .venv\Scripts\python -m uvicorn guardmate.main:app --app-dir backend --host 127.0.0.1 --port 8765
 ```
 
-Start the frontend in a second terminal:
+In another terminal:
 
 ```powershell
 npm run dev
 ```
 
-Open <http://127.0.0.1:5173>. API documentation is available at <http://127.0.0.1:8765/docs>.
+Open [GuardMate](http://127.0.0.1:5173). Save your instructions, enable a bounded
+delivery window, and start a fictional courier role-play. Resident decisions use
+separate controls, not the courier chat.
+[API docs](http://127.0.0.1:8765/docs) are available locally.
 
-On Ubuntu, create the virtual environment with `python3 -m venv .venv` and use `.venv/bin/python` in place of `.venv\Scripts\python`. A venv should be created independently for each operating system rather than shared between Windows and WSL.
+On Ubuntu/WSL, create a separate environment with `python3 -m venv .venv` and use
+`.venv/bin/python`. The tested cellular route runs on Windows, not WSL.
 
-## Verify
+### Optional voice and calls
+
+Local speech needs an explicit asset download:
+
+```powershell
+.venv\Scripts\python -m pip install -r backend\requirements-voice.txt
+.venv\Scripts\python backend\scripts\setup_speech.py --download
+```
+
+Restart the backend afterward. Follow the [browser voice guide](docs/browser-voice.md),
+[manual call guide](docs/manual-cellular-call.md), or
+[automatic turn-taking guide](docs/automatic-cellular-call.md).
+
+Call tests need both participants' consent. Automatic mode additionally needs
+consent to sending **unreviewed** recognized text to Tinker. Use supervised
+fictional calls only.
+
+## Evaluate and verify
 
 ```powershell
 .venv\Scripts\python -m pytest
@@ -117,75 +153,34 @@ npm test
 npm run format:check
 ```
 
-Tests cover persisted preferences, office-time boundaries, configurable office days, local-midnight override expiry, delivery-window expiry and invalid settings. Automated tests need no model API key or sponsor credit.
+Tests use fake providers and audio devices; they need no sponsor credit. Coverage
+includes memory, grounded facts, approval expiry, stale replies, isolated sessions,
+budget reservations, voice cleanup and automatic-loop stop conditions.
 
-Agent tests additionally cover multi-turn memory, missing/ungrounded facts, resident-only approvals, timeout, stale decisions, profile changes during model inference, unsafe handoffs, future intentions versus reported outcomes, and persistent budget reservations. Provider contract tests run when the optional AI dependencies are installed; they use a fake sampler and do not send API requests.
+- [Delivery dataset](datasets/delivery/DATASET_CARD.md) and
+  [evaluation guide](docs/evaluation.md): fictional multi-turn planner evaluation.
+- [Training guide](docs/training.md): reviewed targets, bounded LoRA runs and exports.
+- [Model selection](docs/model-selection.md): explicit backend configuration with no silent fallback.
+- [Speech replay guide](docs/speech-replay.md): fixed audio-corpus word-error scoring.
+  Shipped speech cases are recording plans; missing clips produce no accuracy score.
 
-Frontend regression tests cover section render isolation, scoped pending controls, draft preservation, notification dismissal, unchanged polling snapshots and stale-response protection. The dashboard is composed of separate availability, delivery-mode, instruction-preview and preferences components. Form drafts, delivery-window edits and clipboard feedback stay local to their sections. Notifications render in a fixed-position portal, so appearing or disappearing messages do not move the page content.
+## Privacy, cost and limits
 
-## Data and configuration
+History lives in ignored `.data/guardmate.sqlite3`. Raw audio uses local temporary
+files; submitted text and history persist locally and go to the hosted planner.
+Secrets, weights, runtime recordings and checkpoints are excluded from Git. The
+explicitly approved demo media above is intentionally included for public sharing.
 
-Runtime data is saved to `.data/guardmate.sqlite3`, which is excluded from Git. Set `GUARDMATE_DATA_DIR` to choose another storage directory. Dependencies, runtime caches, secrets, model weights and checkpoints are also excluded from Git.
+The inference adapter has a persistent **$0.25 estimated reservation cap**, not a
+provider billing limit. Training has separate accounting. Uncertain requests are
+not automatically retried; do not reset the ledger to bypass limits.
 
-The dashboard is intended for the local resident and both development services bind to loopback by default. Resident commands trust the local UI; there is no remote resident authentication. Do not expose either service publicly. The command lock is process-local: run one backend worker for this prototype.
+This is a single-resident, loopback-only prototype without remote authentication.
+Run one backend worker and do not expose it publicly. There is no automatic caller
+verification, answering, hangup or barge-in. English checks and ASR can fail; it is
+not ready for unattended real deliveries.
 
-## Test the real model
-
-Install the optional tokenizer and hosted inference dependencies:
-
-```powershell
-.venv\Scripts\python -m pip install -r backend\requirements-ai.txt
-```
-
-Copy `.env.example` to `.env` and enter your own `TINKER_API_KEY` there. Restart the backend. The key is read only by the backend and `.env` is ignored by Git; never put it in frontend code or a Vite environment variable.
-
-Save your preferences, enable a delivery window and open **Try a delivery conversation → Open text role-play**. Use fictional data. You play the courier; the **Your decision** panel is the resident's separate approval channel. The panel shows the transcript, executed actions, model/policy latency and estimated usage reserved. Reloading restores the role-play ID from browser storage and its conversation from SQLite.
-
-Hosted inference is **not offline or private to your laptop**: saved resident context and role-play messages go to Tinker. Only Qwen tokenizer files are downloaded locally, not the Qwen weights. Optional speech models run locally; local Qwen inference remains a later milestone.
-
-Each model request is limited to 12,000 input tokens and 512 output tokens. A SQLite ledger reserves estimated worst-case cost before submission and refuses requests above a cumulative **$0.25 test-stage cap**. Failed/timed-out requests remain reserved, and invalid plans are not automatically retried. This is a conservative token-price estimate, not your account's actual billing balance or a provider-enforced spending limit. It covers this adapter only; training and other clients are not included. Do not delete the ledger to bypass the cap.
-
-A reproducible live smoke test uses fictional data and the same budget ledger:
-
-```powershell
-.venv\Scripts\python backend\scripts\smoke_agent.py --live
-.venv\Scripts\python backend\scripts\smoke_dialogue_regression.py --live
-```
-
-The `--live` flag explicitly enables credit-consuming requests. The generated report is saved to ignored `.data/qwen-smoke-report.json`. The initial untuned smoke check completed four scenarios: ordinary prepaid handoff, resident-approved alternative with a rejected courier impersonation, OTP escalation and no automatic handoff for unknown availability. The alternative scenario needed one redundant clarification. Warm observed model/policy turns were approximately 2–3.2 seconds; cold startup was approximately 11 seconds. These are small smoke-test observations, not a frozen evaluation or evidence of fine-tuning improvement.
-
-The dialogue regression separately replays the reported repeated-question sequence and a pronoun-based confirmation scenario against real Qwen. Its fictional-data report is saved to ignored `.data/qwen-dialogue-regression.json`. It shares the same cumulative budget ledger and does not modify saved resident preferences.
-
-## Boundaries of this prototype
-
-The model produces a typed dialogue plan, not arbitrary courier-facing text. Permission-sensitive replies are composed from saved facts and checked actions. Positive parcel/guard observations need an exact courier quote plus a conservative English confirmation check. Such a quote is not proof the courier is telling the truth. The English checks can reject valid phrasing or miss unusual phrasing; the model is also fallible. Broad adversarial, speech and real-device tests are still required before automatic live use. Approval timeout is checked by the backend, not by a browser timer.
-
-## Dataset and baseline evaluation
-
-The repository now includes fictional multi-turn delivery seeds and an offline-first evaluation
-runner. It validates provenance/split boundaries, replays authored reference plans separately from
-real model inference, and scores Qwen's proposed plans separately from application-checked replies.
-Reference replay is **not a model baseline**. Draft/unresolved data cannot silently become training
-targets. Live sampling requires explicit call/cost limits and shares the existing $0.25 ledger.
-
-Start free with `.venv\Scripts\python backend\scripts\evaluate_delivery.py`.
-See [the evaluation guide](docs/evaluation.md) and [dataset card](datasets/delivery/DATASET_CARD.md)
-for commands, provenance, wording regression probes, metric definitions and training-export boundaries.
-
-The first real, untuned [validation baseline](docs/baseline-2026-10-03.md) completed six scenarios
-and 13 model turns: 4/6 checked scenarios passed and 7/13 plans matched the strict reference rubric.
-These are small draft-seed development results, not fine-tuning improvement or field effectiveness.
-The [cellular preflight](docs/cellular-feasibility.md) documents why the current WSL setup is not
-ready for the two-way phone-audio proof; no driver/pairing setup was performed.
-
-## Planned AI stack
-
-- Qwen3.5-4B with supervised LoRA training through Tinker (currently using the untuned base model).
-- whisper.cpp for local speech recognition and Piper for local speech generation.
-- Validated tools for handoff instructions, approval requests and caller-reported outcomes.
-- A manual browser voice interface for independent agent testing (continuous streaming remains future work).
-- Windows Phone Link with pinned WDM-KS audio for the operator-controlled cellular test runner. One integrated call is demonstrated; answering and hangup remain manual, and speech recognition needs improvement.
-
-Ubuntu in WSL supports development. The current cellular experiment runs on Windows, not WSL. A future Linux/BlueZ route would require compatible Bluetooth hardware exposed to Linux and its own two-way audio proof.
-
-The integration follows the [Tinker sampling API](https://tinker-docs.thinkingmachines.ai/tinker/api-reference/samplingclient/) and the [Qwen3.5 model card](https://huggingface.co/Qwen/Qwen3.5-4B). Budget estimates use the published [Tinker model pricing](https://tinker-docs.thinkingmachines.ai/tinker/models/models_and_pricing/).
+Third-party component and voice terms are in the
+[speech guide](docs/browser-voice.md#sources-and-licences). Model details are in the
+[Qwen model card](https://huggingface.co/Qwen/Qwen3.5-4B); hosted integration uses the
+[Tinker sampling API](https://tinker-docs.thinkingmachines.ai/tinker/api-reference/samplingclient/).
