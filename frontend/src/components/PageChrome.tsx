@@ -66,16 +66,6 @@ export const Hero = memo(function Hero() {
           <span className="illustration-caption">A safe place to land.</span>
         </div>
       </section>
-      <div className="prototype-note">
-        <Icon name="info" size={18} />
-        <p>
-          GuardMate is being built in stages.{' '}
-          <strong>
-            Browser voice is for role-play only; this version does not answer
-            phone calls.
-          </strong>
-        </p>
-      </div>
     </>
   )
 })

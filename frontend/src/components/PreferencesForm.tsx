@@ -21,7 +21,6 @@ export const PreferencesForm = memo(function PreferencesForm({
   pending,
   onSave,
 }: Props) {
-  // An unsaved draft belongs to this form. Other cards and polling never reset it.
   const [editedProfile, setEditedProfile] = useState<ResidentProfile | null>(
     null,
   )

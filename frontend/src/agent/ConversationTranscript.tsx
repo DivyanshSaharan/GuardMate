@@ -121,16 +121,14 @@ export const ConversationTranscript = memo(function ConversationTranscript({
         recordingBlocked={voiceOwner === 'reply'}
         onVoiceBusyChange={recordingBusy}
       />
-      <p className="local-voice-note">
-        Raw audio stays on this computer. Sending your reviewed message sends
-        its text, earlier conversation and saved resident instructions to hosted
-        Tinker/Qwen. No phone calls are connected.
-      </p>
-      <p className="local-voice-status" role="status">
-        {speech.error ||
-          speech.status?.message ||
-          'Checking local voice availability…'}
-      </p>
+      <details className="local-voice-status" open={!!speech.error}>
+        <summary>Voice setup</summary>
+        <p role="status">
+          {speech.error ||
+            speech.status?.message ||
+            'Checking local voice availability…'}
+        </p>
+      </details>
     </div>
   )
 })
