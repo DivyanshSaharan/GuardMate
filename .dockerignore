@@ -1,0 +1,35 @@
+# Only build inputs enter the Docker context. Local secrets, data, models and
+# installed Windows runtimes are excluded; speech assets are downloaded with pins.
+**
+!Dockerfile
+!.dockerignore
+!package.json
+!package-lock.json
+!frontend/
+!frontend/**
+!backend/
+!backend/requirements.txt
+!backend/requirements-ai.txt
+!backend/requirements-voice.txt
+!backend/guardmate/
+!backend/guardmate/**
+!backend/scripts/
+!backend/scripts/setup_speech.py
+!backend/scripts/smoke_speech.py
+# Reapply exclusions after directory allowlists so credentials and bytecode never
+# enter even if someone places them below a source directory.
+**/.env
+**/.env.*
+**/.git
+**/.agents
+**/.codex
+**/.aws
+**/__pycache__
+**/*.py[cod]
+**/*.sqlite3*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/node_modules
+**/dist
