@@ -2,7 +2,7 @@ services:
   - type: web
     name: guardmate
     runtime: docker
-    plan: free
+    plan: starter
     region: oregon
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
@@ -12,6 +12,8 @@ services:
         sync: false
       - key: MONGODB_DATABASE
         value: guardmate
+      - key: GUARDMATE_SPEECH_TIMEOUT
+        value: '90'
       - key: TINKER_API_KEY
         sync: false
       - key: GUARDMATE_ACCESS_USERNAME

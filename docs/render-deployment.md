@@ -8,18 +8,29 @@ it never falls back to an ephemeral SQLite database.
 ## Configuration
 
 Create a dedicated free Atlas cluster and a database user with `readWrite` only
-on the `guardmate` database. Allow the outbound IP ranges shown in the Render
-service's Connect menu in the Atlas network access list. Keep TLS certificate
-verification enabled and avoid allowing all internet addresses.
+on the `guardmate` database. The recommended Atlas network access list allows
+the outbound IP ranges shown in the Render service's Connect menu. Keep TLS
+certificate verification enabled.
+
+For this deployment, the owner explicitly requested an Atlas `0.0.0.0/0`
+network access entry. It allows connections from any IPv4 address; the dedicated
+database credentials and TLS verification remain required. This is a deployment
+exception to the recommended restricted Render outbound ranges above.
 
 Create a Render Docker web service from the repository root, using `Dockerfile`,
-the Free plan, and health check path `/api/health`. `render.yaml` records the
-same settings for reproducible setup. Set these server-side environment variables:
+the owner-approved Starter target ($7/month, 0.5 CPU and 512 MB RAM), and health
+check path `/api/health`. `render.yaml` records this target for reproducible setup.
+The upgrade is pending: Render requires payment information on file, so the
+current service remains on Free (0.1 CPU and 512 MB RAM) until the upgrade succeeds.
+Render requires this payment setup even when promotional credits are available.
+
+Set these server-side environment variables:
 
 | Variable                    | Value                                                          |
 | --------------------------- | -------------------------------------------------------------- |
 | `MONGODB_URI`               | Atlas driver URI containing the dedicated database credentials |
 | `MONGODB_DATABASE`          | `guardmate`                                                    |
+| `GUARDMATE_SPEECH_TIMEOUT`  | `90` seconds                                                   |
 | `TINKER_API_KEY`            | Existing hosted inference API key                              |
 | `GUARDMATE_ACCESS_USERNAME` | Dedicated dashboard username                                   |
 | `GUARDMATE_ACCESS_PASSWORD` | Strong randomly generated dashboard password                   |
@@ -45,11 +56,16 @@ budget ledger still exist in Atlas.
 
 The Linux image includes English browser speech assets built from the pinned,
 verified upstream sources. Whisper uses a derived Q5_0 quantized `base.en` model.
-Speech quality, memory consumption and latency must be tested on the deployed
-instance; Render Free has 512 MB RAM and limited CPU, and idles after inactivity.
+The live Free instance passed one synthetic English greeting round-trip:
+Piper synthesis returned HTTP 200 in 52.1 seconds and Whisper transcription
+returned HTTP 200 in 59.8 seconds. Free hosting is functional but slow; speech
+latency on Starter must be checked after the upgrade. This check does not cover
+human microphone recordings, telephony or concurrent traffic.
 The container uses one speech thread and disables ONNX thread spinning to fit
 small CPU allocations. `GUARDMATE_SPEECH_TIMEOUT` can set a bounded 5–120 second
-timeout; the default is 45 seconds. A speech timeout does not authorize a handoff.
+timeout; the local default is 45 seconds. The deployment configuration sets it
+to 90 seconds for native speech on the limited CPU allocation. A speech timeout
+does not authorize a handoff.
 Windows Phone Link, Bluetooth audio and cellular calling remain local Windows
 features. Public hosting does not make those hardware integrations remote.
 
@@ -58,5 +74,6 @@ tools retain their original SQLite storage when Atlas is not configured. The
 separate training ledger is not part of the deployed web application.
 
 References: [Render Docker](https://render.com/docs/docker),
-[Render Free limits](https://render.com/docs/free),
+[Render compute plans](https://render.com/docs/compute-plans),
+[Render pricing](https://render.com/pricing),
 [Atlas connectivity](https://www.mongodb.com/docs/atlas/connect-to-database-deployment/).
