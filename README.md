@@ -1,200 +1,159 @@
-
-
 # GuardMate
 
+An AI delivery assistant for PG life: remember the handoff instructions, handle
+courier conversations, and ask the resident before changing the plan.
 
-https://github.com/user-attachments/assets/9e87d2ac-5c21-44d7-9091-4c37eca1e539
-
-
-An AI delivery assistant for a friend who lives in a paying guest accommodation
-(PG) and keeps getting courier calls while at the office.
-
-His usual answer: **hand the prepaid parcel to security at the guard room near
-the entrance**. Missed calls sometimes mean returned parcels. GuardMate turns that
-repeated instruction into a conversation that remembers the delivery, knows when
-he is home, and asks him before changing the handoff plan.
+**[Open GuardMate](https://guardmate.onrender.com)** · [Watch the demo](#demo) ·
+[How it works](#how-we-built-it)
 
 Built for **Hacktoberfest 2026 · Build for a Friend**.
 
-[DEV submission draft](docs/dev-submission.md) · [Submission checklist](docs/submission-checklist.md)
+The idea came from a friend who lives in paying guest accommodation (PG) and
+gets courier calls while at the office. His usual answer is simple: **leave the
+prepaid parcel with security at the guard room near the entrance**. Missed calls
+can mean returned parcels. GuardMate remembers that instruction, checks today's
+availability, and keeps each delivery conversation separate.
 
 ## Demo
 
-- [Product walkthrough — video (MP4)](docs/media/guardmate-demo.mp4)
-- [Call recording — audio (MP3)](docs/media/guardmate-call-recording.mp3)
+Watch GuardMate in action:
 
-Open either file on GitHub, or use its download/raw-file control if playback is
-not available. The call recording is shared with all speakers' permission.
+https://github.com/user-attachments/assets/9e87d2ac-5c21-44d7-9091-4c37eca1e539
 
-## What it does
+[Repository walkthrough (MP4)](docs/media/guardmate-demo.mp4) ·
+[Call recording (MP3)](docs/media/guardmate-call-recording.mp3)
 
-- Saves PG directions, guard-room instructions, office days and today's availability.
-- Uses Qwen to plan multi-turn conversations, not just classify a message.
-- Isolates each courier's history, parcel facts and resident decisions.
-- Checks model proposals against saved instructions before speaking a reply.
-- Requires expiring resident approval for an alternative location; pauses on
-  payment, OTP, signature and high-value exceptions.
-- Supports text and local browser voice role-play, plus a Windows Phone Link call path.
-- Provides experimental automatic turn-taking **after you manually answer**.
+The call recording is shared with all speakers' permission.
 
-Courier-reported delivery is not independently verified receipt. GuardMate does
-not answer or hang up calls automatically.
+## Using GuardMate
 
-## Open AI at the core
+1. **Open the [live app](https://guardmate.onrender.com).** Sign in with the
+   dashboard credentials provided by the project owner.
+2. **Make it yours.** Save the resident's name, PG details, guard-room directions
+   and office routine.
+3. **Set today's availability.** Choose **At office**, **At PG** or **Ask me first**
+   when today's plan differs from the usual routine.
+4. **Enable delivery mode.** Set a delivery window and switch delivery mode on.
+5. **Start a fictional courier role-play.** Open text role-play, give the session
+   a courier label, and send delivery messages. Each session has its own history,
+   parcel facts and resident decisions. Saved conversations can be reopened.
+6. **Make the resident's decisions separately.** Use **Approve once**, **Decline**
+   or **Handle personally** when a handoff needs your input. End the role-play
+   when you are done.
 
-The planner uses open-weight **Qwen3.5-4B** through Tinker. **whisper.cpp** transcribes
-speech locally; **Piper** generates replies locally. The model proposes structured
-actions, and GuardMate's application checks decide what can execute.
+For voice, choose **Record courier message**, then **Stop recording**. Review
+and edit the transcript, choose **Use transcript**, then **Send**.
+**Listen to latest reply** plays the assistant's saved response. Recording and
+sending are manual; browser microphone permission is required.
 
-```text
-Courier audio → local Whisper → Qwen planner → permission checks → local Piper → caller
-                                   ↑
-                  saved instructions, routine and conversation
+GuardMate checks proposed replies against the saved instructions. Alternative
+locations need an expiring resident approval; payment, OTP, signature and
+high-value exceptions pause the handoff for the resident.
+
+The hosted app supports text and browser voice. The optional **Windows Phone
+Link** integration is a separate local call path: an operator still answers and
+hangs up the call. Experimental automatic turn-taking starts only after a
+manually answered call. [Cellular call guide](docs/manual-cellular-call.md).
+
+## How I built it
+
+I started with the friend's repeated delivery instructions, then modelled the
+resident's routine, temporary availability, parcel facts and approvals as
+application state. The planner receives that context and the courier's
+conversation, rather than treating each message as an isolated classification.
+
+Open-weight **Qwen3.5-4B**, served through **Tinker**, proposes structured actions.
+The Python engine validates them against the resident's policy and current
+conversation before saving a decision or returning a reply. The model proposes;
+the application owns permissions and execution.
+
+```mermaid
+flowchart LR
+    Input["Text or reviewed Whisper transcript"] --> Planner["Qwen planner · Tinker"]
+    Context["Saved instructions + conversation"] --> Planner
+    Planner --> Checks["Policy + permission checks"]
+    Checks --> Reply["Text reply or Piper audio"]
+    Checks --> Context
 ```
 
-Open components let us inspect the voice pipeline, replay audio against different
-local models, and fine-tune the planner on delivery-specific examples. Raw audio
-need not go to a cloud speech service. The planner is still hosted: recognized
-text, conversation history and saved resident context go to Tinker.
-**The complete application is not offline.**
+**whisper.cpp** transcribes speech and **Piper** generates replies in backend
+workers. On Render, audio is processed on the hosted backend; in local
+development, those workers run on your computer. Recognized text, conversation
+history and resident context go to Tinker for planning. The application is not
+fully offline.
 
-| Layer                      | Stack                                                      |
-| -------------------------- | ---------------------------------------------------------- |
-| Dashboard                  | React, TypeScript, Vite                                    |
-| Backend and persistence    | FastAPI, Pydantic, MongoDB Atlas (hosted) / SQLite (local) |
-| Planning and LoRA training | Qwen3.5-4B, Tinker                                         |
-| Local speech               | whisper.cpp `base.en`, Piper                               |
-| Tested cellular route      | Windows Phone Link, pinned WDM-KS Bluetooth audio          |
+The React dashboard and FastAPI API share one origin in the Docker deployment.
+**MongoDB Atlas** stores hosted preferences, conversations and the inference
+budget. Local development also supports Atlas, with SQLite as the fallback when
+MongoDB is not configured. Dashboard authentication and server-side environment
+variables keep deployment credentials out of frontend assets and Git.
 
-## Demonstrated results
+## Tech stack
 
-**One integrated, consenting fictional phone call** worked on a vivo T2x 5G
-(Android 15). The caller heard the full greeting and three checked replies from
-actual Qwen turns. The operator answered and reviewed transcripts. An ambiguous
-final transcript was rejected instead of recording a completed delivery. Human
-audio worked in both directions afterward.
-[Live-call report](docs/live-cellular-test-2026-10-04.md).
+| Layer                | Technologies                                                       |
+| -------------------- | ------------------------------------------------------------------ |
+| Dashboard            | React 19, TypeScript, Vite                                         |
+| API and validation   | Python 3.13, FastAPI, Pydantic, Uvicorn                            |
+| Delivery planning    | Qwen3.5-4B through Tinker; structured plans and application checks |
+| Persistence          | MongoDB Atlas, PyMongo; optional local SQLite                      |
+| Speech recognition   | whisper.cpp; hosted `base.en` model quantized to Q5_0              |
+| Speech synthesis     | Piper `en_US-ljspeech-high`, ONNX Runtime                          |
+| Hosting              | Docker on Render, one backend worker, HTTPS dashboard login        |
+| Local cellular route | Windows Phone Link, Bluetooth audio, pinned WDM-KS devices         |
+| Training and quality | Tinker LoRA, fictional delivery scenarios, pytest, Vitest, Ruff    |
 
-**One LoRA pilot** completed 30 updates on 40 fictional planner targets. A fresh,
-matched six-scenario development comparison produced:
+## What we tested
 
-| Metric                           | Base    | Tuned   |
-| -------------------------------- | ------- | ------- |
-| Strict planner agreement         | 7/13    | 8/13    |
-| Checked scenario success         | 5/6     | 5/6     |
-| Median text-model/policy latency | 2.133 s | 3.113 s |
+We wrote fictional multi-turn delivery scenarios, tested the policy engine with
+fake providers and audio devices, then compared real model proposals with the
+application's checked outcomes. Regression coverage includes isolated histories,
+grounded parcel facts, approval expiry, stale responses, budget reservations and
+voice cleanup. [Dataset](datasets/delivery/DATASET_CARD.md) ·
+[Evaluation guide](docs/evaluation.md).
 
-This is a small planner-agreement gain, **not a demonstrated functional or speed
-improvement**. These are exposed fictional development cases, not field accuracy.
-The recorded live call used base Qwen; the pilot did not automatically promote a
-checkpoint. [Pilot report](docs/pilot-2026-10-04.md).
+One consenting fictional **Windows Phone Link call** worked on a vivo T2x 5G
+(Android 15). The caller heard the greeting and three checked Qwen replies. The
+operator reviewed transcripts, and an ambiguous final transcript was rejected
+instead of recording a completed delivery. [Call report](docs/live-cellular-test-2026-10-04.md).
 
-The demo's fixed “Tinker Fine-Tuned Model” heading is a presentation label, not
-runtime evidence. Saved action traces record the actual model/checkpoint used.
+One **LoRA pilot** trained 40 fictional planner targets over 30 updates. On six
+development scenarios, planner agreement changed from **7/13 to 8/13**, while
+checked scenario success stayed **5/6**. This is a small development result, not
+field accuracy or a demonstrated functional improvement. Base Qwen remains the
+default; a trained checkpoint must be selected explicitly. The demo's fixed
+fine-tuned-model heading is not evidence of the runtime checkpoint.
+[Pilot report](docs/pilot-2026-10-04.md) · [Model selection](docs/model-selection.md).
 
-Automatic turn-taking has offline regression coverage but has **not** been tested
-on a live call. Transcription errors remain the biggest reliability issue.
+The hosted deployment also passed authentication, Atlas persistence and a
+synthetic English speech round-trip. On the tested Render instance, synthesis
+took about **14.3 seconds** and transcription **14.9 seconds**; these are single
+test measurements, not latency guarantees. [Deployment notes](docs/render-deployment.md).
 
-## Run locally
+## Privacy and current limits
 
-Use Python 3.13+ and Node.js 22.12+; development has been tested on Windows.
-From the repository root:
+GuardMate is a **single-resident prototype for supervised use**. Courier labels
+do not verify caller identity, and a courier's reported delivery is not proof of
+receipt. There is no automatic answering, hangup, transfer or barge-in.
+Transcription can fail, and automatic turn-taking has not been validated on a
+live call. It is not ready for unattended real deliveries.
 
-```powershell
-python -m venv .venv
-.venv\Scripts\python -m pip install -r backend\requirements-dev.txt
-.venv\Scripts\python -m pip install -r backend\requirements-ai.txt
-npm ci
-Copy-Item .env.example .env
-```
+Hosted history is stored in Atlas. Speech workers use temporary audio files;
+the hosted planner receives submitted text, history and resident context.
+Credentials, model weights, runtime recordings and checkpoints are excluded
+from Git; the consented demo media above is intentionally public.
 
-Add your `TINKER_API_KEY` to the ignored `.env` file. Keep it out of frontend code.
-Text conversations need hosted inference credit; offline tests do not.
+Inference has a persistent **$0.25 estimated reservation cap**, separate from
+provider billing and training accounting. Uncertain requests are not
+automatically retried. [Voice processing and licences](docs/browser-voice.md).
 
-Start the backend:
+## Explore the project
 
-```powershell
-.venv\Scripts\python -m uvicorn guardmate.main:app --app-dir backend --host 127.0.0.1 --port 8765
-```
-
-In another terminal:
-
-```powershell
-npm run dev
-```
-
-Open [GuardMate](http://127.0.0.1:5173). Save your instructions, enable a bounded
-delivery window, and start a fictional courier role-play. Resident decisions use
-separate controls, not the courier chat.
-[API docs](http://127.0.0.1:8765/docs) are available locally.
-
-On Ubuntu/WSL, create a separate environment with `python3 -m venv .venv` and use
-`.venv/bin/python`. The tested cellular route runs on Windows, not WSL.
-
-### Optional voice and calls
-
-Local speech needs an explicit asset download:
-
-```powershell
-.venv\Scripts\python -m pip install -r backend\requirements-voice.txt
-.venv\Scripts\python backend\scripts\setup_speech.py --download
-```
-
-Restart the backend afterward. Follow the [browser voice guide](docs/browser-voice.md),
-[manual call guide](docs/manual-cellular-call.md), or
-[automatic turn-taking guide](docs/automatic-cellular-call.md).
-
-Call tests need both participants' consent. Automatic mode additionally needs
-consent to sending **unreviewed** recognized text to Tinker. Use supervised
-fictional calls only.
-
-## Evaluate and verify
-
-```powershell
-.venv\Scripts\python -m pytest
-.venv\Scripts\python -m ruff check backend
-.venv\Scripts\python -m ruff format --check backend
-npm run build
-npm test
-npm run format:check
-```
-
-Tests use fake providers and audio devices; they need no sponsor credit. Coverage
-includes memory, grounded facts, approval expiry, stale replies, isolated sessions,
-budget reservations, voice cleanup and automatic-loop stop conditions.
-
-- [Delivery dataset](datasets/delivery/DATASET_CARD.md) and
-  [evaluation guide](docs/evaluation.md): fictional multi-turn planner evaluation.
-- [Training guide](docs/training.md): reviewed targets, bounded LoRA runs and exports.
-- [Model selection](docs/model-selection.md): explicit backend configuration with no silent fallback.
-- [Speech replay guide](docs/speech-replay.md): fixed audio-corpus word-error scoring.
-  Shipped speech cases are recording plans; missing clips produce no accuracy score.
-
-## Privacy, cost and limits
-
-### Hosted deployment
-
-The [Render deployment guide](docs/render-deployment.md) covers the Docker service,
-MongoDB Atlas persistence and required dashboard authentication. The hosted web
-application requires Atlas and keeps database/model secrets on the server.
-Browser voice uses Linux speech assets; Windows cellular integrations remain local.
-
-History lives in ignored `.data/guardmate.sqlite3`. Raw audio uses local temporary
-files; submitted text and history persist locally and go to the hosted planner.
-Secrets, weights, runtime recordings and checkpoints are excluded from Git. The
-explicitly approved demo media above is intentionally included for public sharing.
-
-The inference adapter has a persistent **$0.25 estimated reservation cap**, not a
-provider billing limit. Training has separate accounting. Uncertain requests are
-not automatically retried; do not reset the ledger to bypass limits.
-
-Local development is a single-resident, loopback-only prototype without authentication
-unless access credentials are configured. Public Render hosting requires dashboard
-authentication and Atlas storage. Run one backend worker. There is no automatic caller
-verification, answering, hangup or barge-in. English checks and ASR can fail; it is
-not ready for unattended real deliveries.
-
-Third-party component and voice terms are in the
-[speech guide](docs/browser-voice.md#sources-and-licences). Model details are in the
-[Qwen model card](https://huggingface.co/Qwen/Qwen3.5-4B); hosted integration uses the
-[Tinker sampling API](https://tinker-docs.thinkingmachines.ai/tinker/api-reference/samplingclient/).
+- [Local development](docs/local-development.md): installation, running the app
+  and verification commands.
+- [Render and Atlas deployment](docs/render-deployment.md): hosting and server
+  configuration.
+- [Browser voice](docs/browser-voice.md), [cellular calls](docs/manual-cellular-call.md)
+  and [automatic turn-taking](docs/automatic-cellular-call.md).
+- [Training](docs/training.md) and [speech replay](docs/speech-replay.md): planner
+  experiments and audio evaluation.
+- [DEV submission](docs/dev-submission.md) and [submission checklist](docs/submission-checklist.md).
