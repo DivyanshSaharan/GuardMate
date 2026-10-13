@@ -52,13 +52,13 @@ need not go to a cloud speech service. The planner is still hosted: recognized
 text, conversation history and saved resident context go to Tinker.
 **The complete application is not offline.**
 
-| Layer                      | Stack                                             |
-| -------------------------- | ------------------------------------------------- |
-| Dashboard                  | React, TypeScript, Vite                           |
-| Backend and persistence    | FastAPI, Pydantic, SQLite                         |
-| Planning and LoRA training | Qwen3.5-4B, Tinker                                |
-| Local speech               | whisper.cpp `base.en`, Piper                      |
-| Tested cellular route      | Windows Phone Link, pinned WDM-KS Bluetooth audio |
+| Layer                      | Stack                                                      |
+| -------------------------- | ---------------------------------------------------------- |
+| Dashboard                  | React, TypeScript, Vite                                    |
+| Backend and persistence    | FastAPI, Pydantic, MongoDB Atlas (hosted) / SQLite (local) |
+| Planning and LoRA training | Qwen3.5-4B, Tinker                                         |
+| Local speech               | whisper.cpp `base.en`, Piper                               |
+| Tested cellular route      | Windows Phone Link, pinned WDM-KS Bluetooth audio          |
 
 ## Demonstrated results
 
@@ -166,6 +166,13 @@ budget reservations, voice cleanup and automatic-loop stop conditions.
 
 ## Privacy, cost and limits
 
+### Hosted deployment
+
+The [Render deployment guide](docs/render-deployment.md) covers the Docker service,
+MongoDB Atlas persistence and required dashboard authentication. The hosted web
+application requires Atlas and keeps database/model secrets on the server.
+Browser voice uses Linux speech assets; Windows cellular integrations remain local.
+
 History lives in ignored `.data/guardmate.sqlite3`. Raw audio uses local temporary
 files; submitted text and history persist locally and go to the hosted planner.
 Secrets, weights, runtime recordings and checkpoints are excluded from Git. The
@@ -175,8 +182,9 @@ The inference adapter has a persistent **$0.25 estimated reservation cap**, not 
 provider billing limit. Training has separate accounting. Uncertain requests are
 not automatically retried; do not reset the ledger to bypass limits.
 
-This is a single-resident, loopback-only prototype without remote authentication.
-Run one backend worker and do not expose it publicly. There is no automatic caller
+Local development is a single-resident, loopback-only prototype without authentication
+unless access credentials are configured. Public Render hosting requires dashboard
+authentication and Atlas storage. Run one backend worker. There is no automatic caller
 verification, answering, hangup or barge-in. English checks and ASR can fail; it is
 not ready for unattended real deliveries.
 

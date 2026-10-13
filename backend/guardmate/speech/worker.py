@@ -29,9 +29,24 @@ def synthesize(model: Path, output: Path, text: str) -> None:
         "voice", ""
     ).startswith("en"):
         raise ValueError("An English local espeak voice is required")
-    from piper import PiperVoice
+    import onnxruntime
+    from piper import PiperConfig, PiperVoice
 
-    voice = PiperVoice.load(str(model), use_cuda=False)
+    # ONNX's defaults use the host's physical cores, which can vastly exceed a
+    # container's CPU quota. Spinning those threads also consumes that quota.
+    options = onnxruntime.SessionOptions()
+    options.intra_op_num_threads = 1
+    options.inter_op_num_threads = 1
+    options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
+    options.add_session_config_entry("session.intra_op.allow_spinning", "0")
+    options.add_session_config_entry("session.inter_op.allow_spinning", "0")
+    voice = PiperVoice(
+        config=PiperConfig.from_dict(config),
+        session=onnxruntime.InferenceSession(
+            str(model), sess_options=options, providers=["CPUExecutionProvider"]
+        ),
+        download_dir=output.parent,
+    )
     bounded = BoundedAudioFile(output)
     try:
         with wave.open(bounded, "wb") as wav:
