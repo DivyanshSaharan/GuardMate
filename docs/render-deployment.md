@@ -18,11 +18,10 @@ database credentials and TLS verification remain required. This is a deployment
 exception to the recommended restricted Render outbound ranges above.
 
 Create a Render Docker web service from the repository root, using `Dockerfile`,
-the owner-approved Starter target ($7/month, 0.5 CPU and 512 MB RAM), and health
-check path `/api/health`. `render.yaml` records this target for reproducible setup.
-The upgrade is pending: Render requires payment information on file, so the
-current service remains on Free (0.1 CPU and 512 MB RAM) until the upgrade succeeds.
-Render requires this payment setup even when promotional credits are available.
+the owner-approved Starter plan ($7/month, 0.5 CPU and 512 MB RAM), and health
+check path `/api/health`. The current service runs this plan, displayed in Render
+as `0.5c-512mb`. `render.yaml` uses the compatible `starter` plan name for
+reproducible setup.
 
 Set these server-side environment variables:
 
@@ -56,11 +55,10 @@ budget ledger still exist in Atlas.
 
 The Linux image includes English browser speech assets built from the pinned,
 verified upstream sources. Whisper uses a derived Q5_0 quantized `base.en` model.
-The live Free instance passed one synthetic English greeting round-trip:
-Piper synthesis returned HTTP 200 in 52.1 seconds and Whisper transcription
-returned HTTP 200 in 59.8 seconds. Free hosting is functional but slow; speech
-latency on Starter must be checked after the upgrade. This check does not cover
-human microphone recordings, telephony or concurrent traffic.
+The live Starter instance passed one synthetic English greeting round-trip:
+Piper synthesis returned HTTP 200 in 14.3 seconds and Whisper transcription
+returned HTTP 200 in 14.9 seconds. The check made no hosted model request and
+does not cover human microphone recordings, telephony or concurrent traffic.
 The container uses one speech thread and disables ONNX thread spinning to fit
 small CPU allocations. `GUARDMATE_SPEECH_TIMEOUT` can set a bounded 5–120 second
 timeout; the local default is 45 seconds. The deployment configuration sets it
