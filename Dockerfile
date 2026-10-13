@@ -18,7 +18,7 @@ RUN python -m venv /opt/venv \
 FROM python:3.13-slim-bookworm AS speech-build
 WORKDIR /app
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates cmake g++ \
+    && apt-get install -y --no-install-recommends ca-certificates cmake build-essential \
     && rm -rf /var/lib/apt/lists/*
 # Official whisper.cpp v1.8.2 release commit. Verify the source before compiling it.
 ADD --checksum=sha256:ec8e33f4c838ed459ad0a23da255c0262f150a6f54839a17e504ddf1495305d5 \
@@ -71,8 +71,9 @@ COPY --from=frontend-build /app/dist/ /app/dist/
 COPY backend/guardmate/ ./backend/guardmate/
 COPY backend/scripts/smoke_speech.py ./backend/scripts/smoke_speech.py
 USER guardmate:guardmate
-# The speech status check imports no hosted model and makes no model request.
-RUN python backend/scripts/smoke_speech.py
+# Exercise the Linux runtimes and writable temporary files as the production user.
+# Only synthetic Piper audio is used; no hosted model request or recording is made.
+RUN python backend/scripts/smoke_speech.py --run
 EXPOSE 10000
 # One worker keeps the application lock and native speech concurrency bound effective.
 CMD ["sh", "-c", "exec python -m uvicorn guardmate.main:app --app-dir backend --host 0.0.0.0 --port ${PORT:-10000} --workers 1 --proxy-headers --forwarded-allow-ips '*' --no-access-log"]
