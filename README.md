@@ -1,4 +1,10 @@
+
+
 # GuardMate
+
+
+https://github.com/user-attachments/assets/9e87d2ac-5c21-44d7-9091-4c37eca1e539
+
 
 An AI delivery assistant for a friend who lives in a paying guest accommodation
 (PG) and keeps getting courier calls while at the office.
