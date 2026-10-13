@@ -47,6 +47,9 @@ The Linux image includes English browser speech assets built from the pinned,
 verified upstream sources. Whisper uses a derived Q5_0 quantized `base.en` model.
 Speech quality, memory consumption and latency must be tested on the deployed
 instance; Render Free has 512 MB RAM and limited CPU, and idles after inactivity.
+The container uses one speech thread and disables ONNX thread spinning to fit
+small CPU allocations. `GUARDMATE_SPEECH_TIMEOUT` can set a bounded 5–120 second
+timeout; the default is 45 seconds. A speech timeout does not authorize a handoff.
 Windows Phone Link, Bluetooth audio and cellular calling remain local Windows
 features. Public hosting does not make those hardware integrations remote.
 

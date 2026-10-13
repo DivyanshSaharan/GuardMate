@@ -52,6 +52,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MALLOC_ARENA_MAX=2 \
     GUARDMATE_DATA_DIR=/app/.data \
     HF_HOME=/app/.cache/huggingface \
+    GUARDMATE_SPEECH_THREADS=1 \
     GUARDMATE_WHISPER_CLI=/opt/whisper/bin/whisper-cli \
     GUARDMATE_WHISPER_MODEL=/app/models/speech/ggml-base.en-q5_0.bin \
     GUARDMATE_PIPER_MODEL=/app/models/speech/en_US-ljspeech-high.onnx

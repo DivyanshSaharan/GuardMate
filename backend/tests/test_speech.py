@@ -211,6 +211,37 @@ def test_transcription_uses_only_local_cli_and_deletes_all_temporary_files(servi
     assert "shell" not in options
 
 
+@pytest.mark.parametrize("configured", ["1", "4", "0", "5", "unbounded"])
+def test_whisper_threads_are_bounded_and_match_child_environment(service, monkeypatch, configured):
+    monkeypatch.setenv("GUARDMATE_SPEECH_THREADS", configured)
+    calls = whisper_result(monkeypatch, "A synthetic test")
+    service.transcribe(recording())
+    command, options = calls[0]
+    expected = configured if configured in ("1", "4") else "4"
+    assert command[command.index("-t") + 1] == expected
+    for variable in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+        assert options["env"][variable] == expected
+    assert "GUARDMATE_SPEECH_THREADS" not in options["env"]
+
+
+@pytest.mark.parametrize(
+    "configured, expected",
+    [("75", 75), ("120", 120), ("5", 5), ("0", 45), ("121", 45), ("unbounded", 45)],
+)
+def test_hosted_speech_timeout_remains_finite(service, tmp_path, monkeypatch, configured, expected):
+    monkeypatch.setenv("GUARDMATE_SPEECH_TIMEOUT", configured)
+    calls = []
+
+    def run(command, **kwargs):
+        calls.append(kwargs)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    service._run(["local-worker"], tmp_path)
+    assert calls[0]["timeout"] == expected
+    assert "GUARDMATE_SPEECH_TIMEOUT" not in calls[0]["env"]
+
+
 @pytest.mark.parametrize(
     "text",
     ["", "[BLANK_AUDIO]", "(silence)", "x" * 601, b"x" * 4097],
@@ -309,11 +340,20 @@ def test_piper_worker_lazily_loads_cpu_voice_and_synthesizes_local_wav(
 ):
     calls = []
 
+    class SessionOptions:
+        def __init__(self):
+            self.entries = {}
+
+        def add_session_config_entry(self, key, value):
+            self.entries[key] = value
+
+    def session(model, **kwargs):
+        calls.append((model, kwargs))
+        return "bounded CPU session"
+
     class Voice:
-        @staticmethod
-        def load(model, **kwargs):
-            calls.append((model, kwargs))
-            return Voice()
+        def __init__(self, **kwargs):
+            calls.append(kwargs)
 
         def synthesize_wav(self, text, wav):
             calls.append(text)
@@ -322,10 +362,38 @@ def test_piper_worker_lazily_loads_cpu_voice_and_synthesizes_local_wav(
             wav.setframerate(22050)
             wav.writeframes(struct.pack("<h", 250) * 200)
 
-    monkeypatch.setitem(sys.modules, "piper", types.SimpleNamespace(PiperVoice=Voice))
+    monkeypatch.setitem(
+        sys.modules,
+        "piper",
+        types.SimpleNamespace(
+            PiperVoice=Voice, PiperConfig=types.SimpleNamespace(from_dict=lambda config: config)
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "onnxruntime",
+        types.SimpleNamespace(
+            SessionOptions=SessionOptions,
+            ExecutionMode=types.SimpleNamespace(ORT_SEQUENTIAL="sequential"),
+            InferenceSession=session,
+        ),
+    )
     output = tmp_path / "worker.wav"
     synthesize(service.piper_model, output, "Checked reply")
-    assert calls == [(str(service.piper_model), {"use_cuda": False}), "Checked reply"]
+    model, options = calls[0]
+    assert model == str(service.piper_model)
+    assert options["providers"] == ["CPUExecutionProvider"]
+    session_options = options["sess_options"]
+    assert session_options.intra_op_num_threads == session_options.inter_op_num_threads == 1
+    assert session_options.execution_mode == "sequential"
+    assert session_options.entries == {
+        "session.intra_op.allow_spinning": "0",
+        "session.inter_op.allow_spinning": "0",
+    }
+    assert calls[1]["session"] == "bounded CPU session"
+    assert calls[1]["config"]["espeak"]["voice"] == "en-us"
+    assert calls[1]["download_dir"] == output.parent
+    assert calls[2] == "Checked reply"
     with wave.open(str(output), "rb") as wav:
         assert wav.getnframes() == 200 and wav.getframerate() == 22050
 

@@ -25,6 +25,14 @@ MAX_TTS_BYTES = 2_000_000
 SPEECH_TIMEOUT = 45
 
 
+def _configured_integer(name: str, default: int, minimum: int, maximum: int) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except ValueError:
+        return default
+    return value if minimum <= value <= maximum else default
+
+
 class SpeechError(Exception):
     def __init__(self, status_code: int, message: str):
         super().__init__(message)
@@ -48,7 +56,10 @@ def _subprocess_environment() -> dict[str, str]:
         "DYLD_LIBRARY_PATH",
     }
     env = {key: value for key, value in os.environ.items() if key.upper() in allowed}
-    env.update({"OMP_NUM_THREADS": "4", "OPENBLAS_NUM_THREADS": "4", "MKL_NUM_THREADS": "4"})
+    threads = str(_configured_integer("GUARDMATE_SPEECH_THREADS", 4, 1, 4))
+    env.update(
+        {"OMP_NUM_THREADS": threads, "OPENBLAS_NUM_THREADS": threads, "MKL_NUM_THREADS": threads}
+    )
     return env
 
 
@@ -187,7 +198,7 @@ class SpeechService:
                 stdin=subprocess.DEVNULL if text is None else None,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                timeout=SPEECH_TIMEOUT,
+                timeout=_configured_integer("GUARDMATE_SPEECH_TIMEOUT", SPEECH_TIMEOUT, 5, 120),
                 check=False,
                 cwd=directory,
                 env=_subprocess_environment(),
@@ -222,7 +233,7 @@ class SpeechService:
                     "-l",
                     "en",
                     "-t",
-                    "4",
+                    str(_configured_integer("GUARDMATE_SPEECH_THREADS", 4, 1, 4)),
                     "-p",
                     "1",
                     "-ng",
