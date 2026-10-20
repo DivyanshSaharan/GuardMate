@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from uuid import uuid4
@@ -31,6 +32,11 @@ def main():
     executable = runtime / "GuardMate.exe"
     probe = ROOT / ".cache/windows-runtime-probe" / str(uuid4())
     probe.mkdir(parents=True)
+    temporary = probe / "temporary"
+    temporary.mkdir()
+    for name in ("TEMP", "TMP", "TMPDIR"):
+        os.environ[name] = str(temporary)
+    tempfile.tempdir = str(temporary)
     output = probe / "synthetic.wav"
     piper = ROOT / "models/speech/en_US-ljspeech-high.onnx"
     hidden = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
@@ -48,6 +54,9 @@ def main():
         whisper_model=ROOT / "models/speech/ggml-base.en.bin",
     )
     transcript = speech.transcribe(pcm)
+    recognized = transcript["text"].lower()
+    if not all(word in recognized for word in ("ready", "supervised", "delivery", "conversation")):
+        raise RuntimeError("Packaged synthetic speech did not produce the expected transcript.")
     environment = dict(os.environ)
     state = probe / "state"
     process = subprocess.Popen(

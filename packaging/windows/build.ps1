@@ -25,7 +25,8 @@ try {
     New-Item -ItemType Directory -Path $releaseRoot -Force | Out-Null
     $archive = Join-Path $releaseRoot ('GuardMate-runtime-' + $Version + '-win-x64.zip')
     if (Test-Path -LiteralPath $archive) { throw 'Release archive exists; choose a new version' }
-    Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $runtimeRoot).FullName -DestinationPath $archive -CompressionLevel Optimal
+    & $Python packaging/windows/create_archive.py --runtime $runtimeRoot --output $archive
+    if ($LASTEXITCODE -ne 0) { throw 'Portable runtime archive creation failed' }
     $digest = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
     @{ version = $Version; sha256 = $digest; size = (Get-Item -LiteralPath $archive).Length } |
         ConvertTo-Json | Set-Content -LiteralPath ($archive + '.json') -Encoding utf8

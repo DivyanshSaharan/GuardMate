@@ -25,6 +25,7 @@ internal static class Bootstrap {
     static Form Window;
     static Label Status;
     static ProgressBar Progress;
+    static string Stage = "prepare";
 
     [STAThread] static int Main(string[] args) {
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
@@ -72,20 +73,20 @@ internal static class Bootstrap {
 
     static void ShowInstaller(Dictionary<string, object> envelope) {
         Application.EnableVisualStyles();
-        Window = new Form { Text = "GuardMate Setup", ClientSize = new Size(530, 250), StartPosition = FormStartPosition.CenterScreen, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false };
+        Window = new Form { Text = "GuardMate Setup", ClientSize = new Size(530, 280), StartPosition = FormStartPosition.CenterScreen, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false };
         var title = new Label { Text = "Install GuardMate for this Windows user", Location = new Point(22, 20), Size = new Size(490, 26), Font = new Font("Segoe UI", 12, FontStyle.Bold) };
         var description = new Label { Text = "Setup downloads the Windows app and verified English speech models.\nYour copied installer stays linked to the same account and usage allowance.\nPhone Link pairing and microphone permissions are completed in the app.", Location = new Point(22, 56), Size = new Size(490, 65) };
-        Status = new Label { Text = "Ready. Close GuardMate before installing an update.", Location = new Point(22, 128), Size = new Size(490, 36) };
-        Progress = new ProgressBar { Location = new Point(22, 169), Size = new Size(490, 18) };
-        var button = new Button { Text = "Install and open", Location = new Point(362, 204), Size = new Size(150, 29) };
+        Status = new Label { Text = "Ready. Close GuardMate before installing an update.", Location = new Point(22, 128), Size = new Size(490, 60) };
+        Progress = new ProgressBar { Location = new Point(22, 195), Size = new Size(490, 18) };
+        var button = new Button { Text = "Install and open", Location = new Point(362, 234), Size = new Size(150, 29) };
         EventHandler installHandler = null;
         installHandler = async delegate {
             button.Enabled = false;
             try {
                 await Task.Run(() => Install(envelope));
                 Update("Installed. GuardMate is opening.", 100);
-            } catch {
-                Update("Setup could not complete. Check your connection, available disk space, and account. No calls were started.", 0);
+            } catch (Exception error) {
+                ReportFailure(error);
             } finally {
                 button.Click -= installHandler;
                 button.Text = "Close"; button.Enabled = true;
@@ -102,6 +103,19 @@ internal static class Bootstrap {
         if (Cancelled) throw new OperationCanceledException();
         if (Window == null) return;
         Window.Invoke((Action)delegate { Status.Text = text; Progress.Value = Math.Max(0, Math.Min(100, percent)); });
+    }
+
+    static void ReportFailure(Exception error) {
+        string code = Stage;
+        var network = error as WebException;
+        var response = network == null ? null : network.Response as HttpWebResponse;
+        if (response != null) code += "-http-" + (int)response.StatusCode;
+        // Exception messages can contain signed URLs or credentials. Record only safe classifications.
+        try {
+            Directory.CreateDirectory(Root);
+            File.AppendAllText(Path.Combine(Root, "setup.log"), DateTime.UtcNow.ToString("o") + " " + code + " " + error.GetType().Name + Environment.NewLine);
+        } catch { }
+        Update("Setup stopped (" + code + "). Details: %LOCALAPPDATA%\\GuardMate\\setup.log. Close setup and try again. No calls were started.", 0);
     }
 
     static bool RuntimeRunning() {
@@ -184,8 +198,10 @@ internal static class Bootstrap {
         Directory.CreateDirectory(destination);
         using (var archive = ZipFile.OpenRead(zip)) foreach (var entry in archive.Entries) {
             if (++count > 20000 || entry.Length > 500000000 || (total += entry.Length) > 1500000000 || ((entry.ExternalAttributes >> 16) & 0xF000) == 0xA000) throw new InvalidDataException();
-            string target = ChildPath(destination, entry.FullName);
-            if (entry.FullName.EndsWith("/")) { Directory.CreateDirectory(target); continue; }
+            // Windows Compress-Archive emits backslashes. Validate the normalized path before writing.
+            string relative = entry.FullName.Replace('\\', '/');
+            string target = ChildPath(destination, relative);
+            if (relative.EndsWith("/")) { Directory.CreateDirectory(target); continue; }
             Directory.CreateDirectory(Path.GetDirectoryName(target));
             using (var input = entry.Open()) using (var output = new FileStream(target, FileMode.CreateNew)) {
                 byte[] buffer = new byte[65536]; long written = 0; int read;
@@ -195,15 +211,32 @@ internal static class Bootstrap {
         }
     }
 
+    static List<Dictionary<string, object>> ReadSpeechAssets(string path) {
+        var manifest = Json.Deserialize<Dictionary<string, object>>(File.ReadAllText(path));
+        var assets = new List<Dictionary<string, object>>();
+        // JavaScriptSerializer represents nested JSON arrays as ArrayList on .NET Framework.
+        foreach (object item in (System.Collections.IEnumerable)manifest["assets"]) {
+            var asset = item as Dictionary<string, object>;
+            if (asset == null || assets.Count >= 8) throw new InvalidDataException();
+            assets.Add(asset);
+        }
+        if (assets.Count == 0) throw new InvalidDataException();
+        return assets;
+    }
+
     static void Install(Dictionary<string, object> envelope) {
         bool owner;
         using (var mutex = new Mutex(true, "Local\\GuardMateInstaller", out owner)) {
+            Stage = "application-running";
             if (!owner || RuntimeRunning()) throw new InvalidOperationException();
+            Stage = "prepare";
             Directory.CreateDirectory(Root);
+            Stage = "activate";
             Update("Activating this account...", 0);
             var activation = Api("/api/cloud/activate", null, new Dictionary<string, object> { { "credential", Text(envelope, "bootstrap_token") } });
             string access = Text(activation, "access_token"), account = Text(activation, "account_id");
             double expires = DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds + Convert.ToInt32(activation["expires_in"]);
+            Stage = "release";
             var release = Api("/api/cloud/release", access);
             string version = Text(release, "version");
             if (version.Length > 80 || version.Any(c => !(Char.IsLetterOrDigit(c) || c == '.' || c == '-'))) throw new InvalidDataException();
@@ -212,30 +245,37 @@ internal static class Bootstrap {
             if (!File.Exists(Path.Combine(target, "GuardMate.exe"))) {
                 string cache = Path.Combine(Root, "downloads"); Directory.CreateDirectory(cache);
                 string archive = Path.Combine(cache, "runtime-" + version + ".zip");
+                Stage = "runtime-download";
                 Download(Text(release, "url"), archive, Text(release, "sha256"), Convert.ToInt64(release["size"]), "Downloading the Windows application...");
                 string staging = ChildPath(releases, "staging-" + Guid.NewGuid().ToString("N"));
                 try {
+                    Stage = "runtime-extract";
                     Update("Verifying and extracting the application...", 0); Extract(archive, staging);
                     if (!File.Exists(Path.Combine(staging, "GuardMate.exe"))) throw new InvalidDataException();
                     Directory.Move(staging, target);
                 } finally { if (Directory.Exists(staging)) Directory.Delete(staging, true); }
             }
-            var assets = Json.Deserialize<Dictionary<string, object>>(File.ReadAllText(Path.Combine(target, "_internal", "speech-assets.json")));
-            foreach (Dictionary<string, object> asset in (object[])assets["assets"]) {
+            Stage = "speech-manifest";
+            foreach (var asset in ReadSpeechAssets(Path.Combine(target, "_internal", "speech-assets.json"))) {
                 string relative = Text(asset, "path");
                 if (!relative.StartsWith("models/speech/", StringComparison.Ordinal)) throw new InvalidDataException();
                 string model = ChildPath(Root, relative); Directory.CreateDirectory(Path.GetDirectoryName(model));
+                Stage = "speech-download";
                 Download(Text(asset, "url"), model, Text(asset, "sha256"), Convert.ToInt64(asset["size"]), "Preparing verified English speech models...");
             }
+            Stage = "session-save";
             if (RuntimeRunning() || Cancelled) throw new InvalidOperationException();
             byte[] protectedSession = ProtectedData.Protect(Encoding.UTF8.GetBytes(Json.Serialize(NewSession(envelope, access, account, expires))), null, DataProtectionScope.CurrentUser);
             string temporary = Path.Combine(Root, "session.new"); File.WriteAllBytes(temporary, protectedSession);
             string sessionFile = Path.Combine(Root, "session.dat");
             if (File.Exists(sessionFile)) File.Replace(temporary, sessionFile, null); else File.Move(temporary, sessionFile);
+            Stage = "shortcut";
             dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
             dynamic shortcut = shell.CreateShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "GuardMate.lnk"));
             shortcut.TargetPath = Path.Combine(target, "GuardMate.exe"); shortcut.WorkingDirectory = target; shortcut.Save();
+            Stage = "uninstaller";
             WriteUninstaller();
+            Stage = "launch";
             Process.Start(new ProcessStartInfo(Path.Combine(target, "GuardMate.exe")) { WorkingDirectory = target, UseShellExecute = true });
         }
     }

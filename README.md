@@ -4,7 +4,7 @@ An AI delivery assistant for PG life: remember the handoff instructions, handle
 courier conversations, and ask the resident before changing the plan.
 
 **[Open GuardMate](https://guardmate.onrender.com)** · [Watch the demo](#demo) ·
-[How it works](#how-we-built-it)
+[How it works](#how-i-built-it)
 
 Built for **Hacktoberfest 2026 · Build for a Friend**.
 
@@ -27,33 +27,39 @@ The call recording is shared with all speakers' permission.
 
 ## Using GuardMate
 
-1. **Open the [live app](https://guardmate.onrender.com).** Sign in with the
-   dashboard credentials provided by the project owner.
-2. **Make it yours.** Save the resident's name, PG details, guard-room directions
-   and office routine.
-3. **Set today's availability.** Choose **At office**, **At PG** or **Ask me first**
-   when today's plan differs from the usual routine.
-4. **Enable delivery mode.** Set a delivery window and switch delivery mode on.
-5. **Start a fictional courier role-play.** Open text role-play, give the session
-   a courier label, and send delivery messages. Each session has its own history,
-   parcel facts and resident decisions. Saved conversations can be reopened.
-6. **Make the resident's decisions separately.** Use **Approve once**, **Decline**
-   or **Handle personally** when a handoff needs your input. End the role-play
-   when you are done.
+The public website is live, and account-linked Windows installers are available
+for supervised testing. Google sign-in is required for downloads; viewing the
+website and its prepared conversation example is public.
 
-For voice, choose **Record courier message**, then **Stop recording**. Review
-and edit the transcript, choose **Use transcript**, then **Send**.
-**Listen to latest reply** plays the assistant's saved response. Recording and
-sending are manual; browser microphone permission is required.
+1. **Visit** [GuardMate](https://guardmate.onrender.com). The public website has
+   a prepared conversation example; Google sign-in authorizes your download.
+2. **Install** your personalized `GuardMateSetup.exe`. Setup installs the
+   application and verifies its speech-model downloads. The initial installer
+   is unsigned, so Windows may show a publisher warning.
+3. **Connect** your Android phone through Microsoft Phone Link. Complete
+   Microsoft sign-in, Bluetooth pairing and call permissions when prompted.
+4. **Configure** the resident's name, PG details, guard-room directions, routine
+   and current delivery window in the local dashboard.
+5. **Select** the paired phone's input and output audio devices. Answer a
+   consenting call manually through Phone Link, then start assistance.
+6. **Review** each captured transcript, edit it if needed, and send it for an AI
+   reply. Choose **Play** separately to transmit the checked reply to the caller.
+7. **Decide** using **Approve once**, **Decline** or **Handle personally** when
+   resident input is required. Stop assistance and hang up through Phone Link.
+
+Requirements are Windows x64, an Android phone, Bluetooth and internet access.
+Users do not need Python, Node.js or their own Tinker key. The local dashboard
+also supports fictional text and browser-microphone role-play for practice.
+Pairing and phone permissions remain interactive.
 
 GuardMate checks proposed replies against the saved instructions. Alternative
 locations need an expiring resident approval; payment, OTP, signature and
 high-value exceptions pause the handoff for the resident.
 
-The hosted app supports text and browser voice. The optional **Windows Phone
-Link** integration is a separate local call path: an operator still answers and
-hangs up the call. Experimental automatic turn-taking starts only after a
-manually answered call. [Cellular call guide](docs/manual-cellular-call.md).
+Each account receives a **$1 lifetime estimated AI allowance**, provided by the
+project owner. Reinstalling, downloading again or copying an account's installer
+uses that same account and allowance. Downloads can be revoked through the
+website. [Desktop usage and release guide](docs/desktop-release.md).
 
 ## How I built it
 
@@ -76,31 +82,42 @@ flowchart LR
     Checks --> Context
 ```
 
-**whisper.cpp** transcribes speech and **Piper** generates replies in backend
-workers. On Render, audio is processed on the hosted backend; in local
-development, those workers run on your computer. Recognized text, conversation
-history and resident context go to Tinker for planning. The application is not
-fully offline.
+I separated the application into a Windows client and a cloud gateway.
+**whisper.cpp** transcribes speech and **Piper** generates replies in local
+workers. **SQLite** saves each account's resident preferences and conversation
+history on the computer. Reviewed text, history and resident context go through
+Render to Tinker for planning; the application is not fully offline.
 
-The React dashboard and FastAPI API share one origin in the Docker deployment.
-**MongoDB Atlas** stores hosted preferences, conversations and the inference
-budget. Local development also supports Atlas, with SQLite as the fallback when
-MongoDB is not configured. Dashboard authentication and server-side environment
-variables keep deployment credentials out of frontend assets and Git.
+The Render **FastAPI** gateway serves the public React website, verifies Google
+identity and enforces each account's allowance. **MongoDB Atlas** holds account
+identities, hashed download credentials, expiring sessions and request ledgers.
+A MongoDB transaction reserves a conservative token-cost estimate before a
+request can reach Tinker. Concurrent copies share the account's remaining
+allowance; duplicate or uncertain requests are never automatically resent.
+
+I packaged the desktop runtime with **PyInstaller** and a small Windows
+bootstrapper. **Cloudflare R2** stores the common application package and unsigned
+installer template privately. After login, the gateway personalizes the template
+with a revocable account credential. Setup activates that credential, verifies
+the downloaded package and protects the installed session with Windows DPAPI.
+Tinker, database, Google client-secret and R2 secrets stay server-side or in
+private publishing configuration; they are excluded from the distributed app.
 
 ## Tech stack
 
-| Layer                | Technologies                                                       |
-| -------------------- | ------------------------------------------------------------------ |
-| Dashboard            | React 19, TypeScript, Vite                                         |
-| API and validation   | Python 3.13, FastAPI, Pydantic, Uvicorn                            |
-| Delivery planning    | Qwen3.5-4B through Tinker; structured plans and application checks |
-| Persistence          | MongoDB Atlas, PyMongo; optional local SQLite                      |
-| Speech recognition   | whisper.cpp; hosted `base.en` model quantized to Q5_0              |
-| Speech synthesis     | Piper `en_US-ljspeech-high`, ONNX Runtime                          |
-| Hosting              | Docker on Render, one backend worker, HTTPS dashboard login        |
-| Local cellular route | Windows Phone Link, Bluetooth audio, pinned WDM-KS devices         |
-| Training and quality | Tinker LoRA, fictional delivery scenarios, pytest, Vitest, Ruff    |
+| Layer                 | Technologies                                                       |
+| --------------------- | ------------------------------------------------------------------ |
+| Website and dashboard | React 19, TypeScript, Vite                                         |
+| API and validation    | Python 3.13, FastAPI, Pydantic, Uvicorn                            |
+| Delivery planning     | Qwen3.5-4B through Tinker; structured plans and application checks |
+| Local persistence     | SQLite; account-specific preferences and history                   |
+| Cloud accounting      | MongoDB Atlas, PyMongo transactions; per-account reservations      |
+| Speech recognition    | Local whisper.cpp `base.en`                                        |
+| Speech synthesis      | Local Piper `en_US-ljspeech-high`, ONNX Runtime                    |
+| Windows distribution  | PyInstaller, Windows bootstrapper, DPAPI, private Cloudflare R2    |
+| Identity and hosting  | Google OAuth with PKCE, Docker on Render                           |
+| Phone integration     | Windows Phone Link, Bluetooth audio, selected WDM-KS endpoints     |
+| Training and quality  | Tinker LoRA, fictional delivery scenarios, pytest, Vitest, Ruff    |
 
 ## What we tested
 
@@ -111,12 +128,12 @@ grounded parcel facts, approval expiry, stale responses, budget reservations and
 voice cleanup. [Dataset](datasets/delivery/DATASET_CARD.md) ·
 [Evaluation guide](docs/evaluation.md).
 
-One consenting fictional **Windows Phone Link call** worked on a vivo T2x 5G
+On **October 4, 2026**, one consenting fictional **Windows Phone Link CLI call** worked on a vivo T2x 5G
 (Android 15). The caller heard the greeting and three checked Qwen replies. The
 operator reviewed transcripts, and an ambiguous final transcript was rejected
 instead of recording a completed delivery. [Call report](docs/live-cellular-test-2026-10-04.md).
 
-One **LoRA pilot** trained 40 fictional planner targets over 30 updates. On six
+The **October 4, 2026 LoRA pilot** trained 40 fictional planner targets over 30 updates. On six
 development scenarios, planner agreement changed from **7/13 to 8/13**, while
 checked scenario success stayed **5/6**. This is a small development result, not
 field accuracy or a demonstrated functional improvement. Base Qwen remains the
@@ -124,31 +141,41 @@ default; a trained checkpoint must be selected explicitly. The demo's fixed
 fine-tuned-model heading is not evidence of the runtime checkpoint.
 [Pilot report](docs/pilot-2026-10-04.md) · [Model selection](docs/model-selection.md).
 
-The hosted deployment also passed authentication, Atlas persistence and a
-synthetic English speech round-trip. On the tested Render instance, synthesis
-took about **14.3 seconds** and transcription **14.9 seconds**; these are single
-test measurements, not latency guarantees. [Deployment notes](docs/render-deployment.md).
+The earlier hosted prototype, documented on **October 13, 2026**, passed
+authentication, Atlas persistence and a synthetic English speech round-trip.
+Synthesis took about **14.3 seconds** and transcription **14.9 seconds** on that
+Render instance. Those historical measurements describe the previous hosted
+speech path, not the local Windows package or latency guarantees.
+[Deployment notes](docs/render-deployment.md#historical-hosted-prototype).
 
 ## Privacy and current limits
 
-GuardMate is a **single-resident prototype for supervised use**. Courier labels
+Each desktop profile serves one resident and is **for supervised use**. Courier labels
 do not verify caller identity, and a courier's reported delivery is not proof of
 receipt. There is no automatic answering, hangup, transfer or barge-in.
 Transcription can fail, and automatic turn-taking has not been validated on a
 live call. It is not ready for unattended real deliveries.
 
-Hosted history is stored in Atlas. Speech workers use temporary audio files;
-the hosted planner receives submitted text, history and resident context.
+The desktop keeps preferences and history locally. New cloud account records
+contain identity and accounting data, not resident histories or audio. The cloud
+gateway does not expose the previous hosted resident-data APIs or their records.
+Speech workers use temporary local audio files; Tinker receives submitted text,
+history and resident context.
 Credentials, model weights, runtime recordings and checkpoints are excluded
 from Git; the consented demo media above is intentionally public.
 
-Inference has a persistent **$0.25 estimated reservation cap**, separate from
-provider billing and training accounting. Uncertain requests are not
-automatically retried. [Voice processing and licences](docs/browser-voice.md).
+The **$1 allowance is per account**, rather than per physical person or device.
+Completed and uncertain requests retain conservative estimated reservations;
+this is not the provider's invoice balance. Existing historical spending records
+are preserved separately. The packaged GUI still needs a supervised real-call
+check on each new phone/computer; the older CLI call does not establish broad
+device compatibility. [Speech processing and licences](docs/browser-voice.md).
 
 ## Explore the project
 
-- [Local development](docs/local-development.md): installation, running the app
+- [Desktop release](docs/desktop-release.md): installation, account downloads,
+  Phone Link use and release publishing.
+- [Local development](docs/local-development.md): running the source app
   and verification commands.
 - [Render and Atlas deployment](docs/render-deployment.md): hosting and server
   configuration.
