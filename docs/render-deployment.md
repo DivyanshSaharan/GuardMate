@@ -4,10 +4,11 @@ The cloud image serves the public React website and an account-scoped FastAPI
 gateway. Windows runs Phone Link, Whisper, Piper, policy checks and local SQLite.
 The Render image does not contain speech models or mount resident-data APIs.
 
-The public gateway and account-linked downloads are published. The current
-Windows release is `0.2.0-rc.2`; its bootstrap handles Windows ZIP separators
-and .NET Framework speech-manifest arrays. Physical Phone Link calls still
-require supervised verification on the installed release.
+The public gateway and account-linked downloads are published. Render's release
+metadata selects the current Windows download. The bootstrap handles Windows ZIP
+separators and .NET Framework speech-manifest arrays. Windows builds embed the
+GuardMate logo in the app, installer and uninstall entry. Physical Phone Link
+calls still require supervised verification on the installed release.
 
 ## Responsibilities and access
 

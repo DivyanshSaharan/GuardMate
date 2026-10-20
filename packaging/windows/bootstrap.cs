@@ -74,6 +74,10 @@ internal static class Bootstrap {
     static void ShowInstaller(Dictionary<string, object> envelope) {
         Application.EnableVisualStyles();
         Window = new Form { Text = "GuardMate Setup", ClientSize = new Size(530, 280), StartPosition = FormStartPosition.CenterScreen, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false };
+        try { Window.Icon = Icon.ExtractAssociatedIcon(Self); }
+        catch (ArgumentException) { }
+        catch (IOException) { }
+        catch (System.ComponentModel.Win32Exception) { }
         var title = new Label { Text = "Install GuardMate for this Windows user", Location = new Point(22, 20), Size = new Size(490, 26), Font = new Font("Segoe UI", 12, FontStyle.Bold) };
         var description = new Label { Text = "Setup downloads the Windows app and verified English speech models.\nYour copied installer stays linked to the same account and usage allowance.\nPhone Link pairing and microphone permissions are completed in the app.", Location = new Point(22, 56), Size = new Size(490, 65) };
         Status = new Label { Text = "Ready. Close GuardMate before installing an update.", Location = new Point(22, 128), Size = new Size(490, 60) };
@@ -272,7 +276,8 @@ internal static class Bootstrap {
             Stage = "shortcut";
             dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
             dynamic shortcut = shell.CreateShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "GuardMate.lnk"));
-            shortcut.TargetPath = Path.Combine(target, "GuardMate.exe"); shortcut.WorkingDirectory = target; shortcut.Save();
+            shortcut.TargetPath = Path.Combine(target, "GuardMate.exe"); shortcut.WorkingDirectory = target;
+            shortcut.IconLocation = Path.Combine(target, "GuardMate.exe") + ",0"; shortcut.Save();
             Stage = "uninstaller";
             WriteUninstaller();
             Stage = "launch";
@@ -288,6 +293,7 @@ internal static class Bootstrap {
         using (var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\GuardMate")) {
             key.SetValue("DisplayName", "GuardMate"); key.SetValue("Publisher", "GuardMate");
             key.SetValue("UninstallString", "\"" + executable + "\" --uninstall"); key.SetValue("InstallLocation", Root);
+            key.SetValue("DisplayIcon", executable + ",0");
             key.SetValue("NoModify", 1); key.SetValue("NoRepair", 1);
         }
     }

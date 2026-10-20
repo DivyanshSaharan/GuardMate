@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { formatDate } from '../lib/presentation'
 import { Icon } from './Icon'
+import { BrandMark } from './BrandMark'
 
 export const Header = memo(function Header({
   desktop = false,
@@ -10,9 +11,7 @@ export const Header = memo(function Header({
   return (
     <header className="header">
       <a className="brand" href="#today" aria-label="GuardMate home">
-        <span className="brand-symbol">
-          <Icon name="shield" size={25} />
-        </span>
+        <BrandMark />
         <span>
           GuardMate<span className="brand-dot">.</span>
         </span>

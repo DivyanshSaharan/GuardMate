@@ -31,6 +31,7 @@ a = Analysis([str(root / "backend/scripts/guardmate_desktop.py")],
              noarchive=False)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="GuardMate",
+          icon=str(root / "packaging/windows/assets/guardmate.ico"),
           debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
           console=True, hide_console="hide-early", disable_windowed_traceback=False)
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="GuardMate")

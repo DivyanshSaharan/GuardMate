@@ -6,7 +6,9 @@ if (-not $outputRoot.StartsWith($repoRoot + [IO.Path]::DirectorySeparatorChar, [
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path -LiteralPath $compiler)) { throw '.NET Framework C# compiler is unavailable' }
+$icon = Join-Path $PSScriptRoot 'assets\guardmate.ico'
+if (-not (Test-Path -LiteralPath $icon -PathType Leaf)) { throw 'GuardMate Windows icon is unavailable' }
 $output = Join-Path $outputRoot 'GuardMateSetup.template.exe'
-& $compiler /nologo /target:winexe /platform:x64 /optimize+ "/out:$output" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.Security.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll /reference:Microsoft.CSharp.dll (Join-Path $PSScriptRoot 'bootstrap.cs')
+& $compiler /nologo /target:winexe /platform:x64 /optimize+ "/out:$output" "/win32icon:$icon" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.Security.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll /reference:Microsoft.CSharp.dll (Join-Path $PSScriptRoot 'bootstrap.cs')
 if ($LASTEXITCODE -ne 0) { throw 'Bootstrap compilation failed' }
 Write-Output ('Unsigned bootstrap template: ' + $output)

@@ -76,11 +76,8 @@ svg {
   letter-spacing: -1px;
 }
 .brand-symbol {
-  display: grid;
-  place-items: center;
-  background: var(--green);
-  color: #e9f2ba;
-  border-radius: 12px;
+  display: block;
+  flex: 0 0 auto;
   width: 43px;
   height: 43px;
 }
@@ -808,7 +805,6 @@ select {
   .brand-symbol {
     height: 36px;
     width: 36px;
-    border-radius: 10px;
   }
   .header nav {
     gap: 8px 14px;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Footer, Hero } from '../components/PageChrome'
-import { Icon } from '../components/Icon'
+import { BrandMark } from '../components/BrandMark'
 import './website.css'
 
 type Configuration = {
@@ -104,9 +104,7 @@ export function PublicSite() {
     <div className="app-shell website">
       <header className="header">
         <a className="brand" href="/" aria-label="GuardMate home">
-          <span className="brand-symbol">
-            <Icon name="shield" size={25} />
-          </span>
+          <BrandMark />
           <span>
             GuardMate<span className="brand-dot">.</span>
           </span>
