@@ -6,8 +6,9 @@ import { NotificationProvider } from './components/Notifications'
 import { Footer, Header, Hero, TodayHeading } from './components/PageChrome'
 import { PreferencesForm } from './components/PreferencesForm'
 import { useDashboard } from './hooks/useDashboard'
+import { DesktopSetup } from './desktop/DesktopSetup'
 
-function DashboardScreen() {
+function DashboardScreen({ desktop = false }: { desktop?: boolean }) {
   const {
     dashboard,
     connected,
@@ -24,6 +25,7 @@ function DashboardScreen() {
       <Header />
       <main id="today">
         <Hero />
+        {desktop && <DesktopSetup />}
         <TodayHeading localDate={context?.local_date} />
         <section className="today-grid" aria-label="Today's delivery settings">
           <AvailabilityCard
@@ -64,10 +66,10 @@ function DashboardScreen() {
   )
 }
 
-export default function App() {
+export default function App({ desktop = false }: { desktop?: boolean }) {
   return (
     <NotificationProvider>
-      <DashboardScreen />
+      <DashboardScreen desktop={desktop} />
     </NotificationProvider>
   )
 }

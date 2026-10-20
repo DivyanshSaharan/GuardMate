@@ -15,6 +15,7 @@ from array import array
 from dataclasses import asdict
 from pathlib import Path
 
+from ..frozen_runtime import worker_command
 from .call_errors import CallError
 from .windows_audio import AudioDevice, AudioError, validate_audio
 
@@ -282,12 +283,10 @@ class LocalCallAudio:
         body = json.dumps(request, ensure_ascii=True, allow_nan=False).encode("utf-8")
         if len(body) > MAX_BODY_BYTES:
             raise CallError("The manual audio request exceeds its size bound.")
-        executable = self.root / ".venv" / "Scripts" / "python.exe"
-        worker = self.root / "backend" / "guardmate" / "cellular" / "call_audio_worker.py"
         timeout = {"list": 10, "record": 20, "play": 40}[action]
         try:
             result = self._run(
-                [str(executable), "-I", "-B", str(worker)],
+                worker_command("call-audio", root=self.root),
                 input=body,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,

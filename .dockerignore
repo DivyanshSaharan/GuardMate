@@ -10,6 +10,7 @@
 !backend/
 !backend/requirements.txt
 !backend/requirements-ai.txt
+!backend/requirements-cloud.txt
 !backend/requirements-voice.txt
 !backend/guardmate/
 !backend/guardmate/**
@@ -18,12 +19,7 @@
 !backend/scripts/smoke_speech.py
 # Reapply exclusions after directory allowlists so credentials and bytecode never
 # enter even if someone places them below a source directory.
-**/.env
-**/.env.*
-**/.git
-**/.agents
-**/.codex
-**/.aws
+**/.*
 **/__pycache__
 **/*.py[cod]
 **/*.sqlite3*

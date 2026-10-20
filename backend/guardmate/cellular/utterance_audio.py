@@ -8,6 +8,7 @@ import subprocess
 import threading
 from dataclasses import asdict
 
+from ..frozen_runtime import worker_command
 from .call_audio import (
     MAX_BODY_BYTES,
     SAFE_FAILURES,
@@ -181,12 +182,7 @@ class UtteranceCallAudio(LocalCallAudio):
 
         environment = worker_environment()
         environment[MARKER] = "1"
-        command = [
-            str(self.root / ".venv" / "Scripts" / "python.exe"),
-            "-I",
-            "-B",
-            str(self.root / "backend" / "guardmate" / "cellular" / "utterance_worker.py"),
-        ]
+        command = worker_command("utterance-audio", root=self.root)
         try:
             result = self._listen_run(
                 command,

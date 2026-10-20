@@ -15,6 +15,8 @@ from pathlib import Path
 from threading import BoundedSemaphore
 from time import perf_counter
 
+from ..frozen_runtime import worker_command
+
 MAX_SECONDS = 30
 SAMPLE_RATE = 16000
 MAX_WAV_BYTES = MAX_SECONDS * SAMPLE_RATE * 2 + 4096
@@ -277,9 +279,8 @@ class SpeechService:
         with self._slot(), tempfile.TemporaryDirectory(prefix="guardmate-speech-") as raw_dir:
             directory = Path(raw_dir)
             output = directory / "reply.wav"
-            worker = Path(__file__).with_name("worker.py")
             self._run(
-                [sys.executable, str(worker), str(self.piper_model.resolve()), str(output)],
+                worker_command("speech", str(self.piper_model.resolve()), str(output)),
                 directory,
                 text,
             )

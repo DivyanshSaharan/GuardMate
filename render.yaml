@@ -12,11 +12,25 @@ services:
         sync: false
       - key: MONGODB_DATABASE
         value: guardmate
-      - key: GUARDMATE_SPEECH_TIMEOUT
-        value: '90'
+      - key: GUARDMATE_MODE
+        value: cloud
+      - key: GUARDMATE_PUBLIC_ORIGIN
+        value: https://guardmate.onrender.com
       - key: TINKER_API_KEY
         sync: false
-      - key: GUARDMATE_ACCESS_USERNAME
+      - key: GUARDMATE_GOOGLE_CLIENT_ID
         sync: false
-      - key: GUARDMATE_ACCESS_PASSWORD
+      - key: GUARDMATE_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GUARDMATE_R2_ENDPOINT
+        sync: false
+      - key: GUARDMATE_R2_BUCKET
+        sync: false
+      - key: GUARDMATE_R2_ACCESS_KEY_ID
+        sync: false
+      - key: GUARDMATE_R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: GUARDMATE_DESKTOP_RELEASE
+        sync: false
+      - key: GUARDMATE_INSTALLER_RELEASE
         sync: false

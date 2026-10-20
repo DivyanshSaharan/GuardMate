@@ -29,9 +29,15 @@ def create_app(
     provider: PlanProvider | None = None,
     speech_service: SpeechService | None = None,
     frontend_dir: Path | None = None,
+    desktop_access: tuple[str, str] | None = None,
+    desktop_root: Path | None = None,
 ) -> FastAPI:
     root = Path(__file__).resolve().parents[2]
     load_dotenv(root / ".env", override=False)
+    if os.environ.get("GUARDMATE_MODE") == "cloud":
+        from .cloud_app import create_cloud_app
+
+        return create_cloud_app(frontend_dir)
     access = AccessSettings.from_environment()
     if access.render and not os.environ.get("MONGODB_URI", "").strip():
         raise RuntimeError("MONGODB_URI is required for durable GuardMate storage on Render.")
@@ -53,6 +59,8 @@ def create_app(
                 "GuardMate storage could not be reached. Check the MongoDB configuration."
             ) from None
         finally:
+            if hasattr(application.state, "desktop_calls"):
+                application.state.desktop_calls.stop()
             if mongo is not None:
                 mongo.close()
 
@@ -85,6 +93,10 @@ def create_app(
         if mongo is not None:
             mongo.ping()
         return {"status": "ok", "service": "guardmate"}
+
+    @application.get("/api/runtime")
+    def runtime() -> dict[str, str]:
+        return {"mode": "desktop" if desktop_access else "local", "version": "0.2.0"}
 
     @application.get("/api/dashboard", response_model=Dashboard)
     def read_dashboard() -> Dashboard:
@@ -137,8 +149,35 @@ def create_app(
         dashboard,
         current_time,
     )
+    application.state.engine = engine
     application.include_router(build_router(engine))
-    application.include_router(build_speech_router(engine, speech_service or SpeechService(root)))
+    selected_speech = speech_service or SpeechService(root)
+    application.include_router(build_speech_router(engine, selected_speech))
+    if desktop_access is not None:
+        from .desktop.local import LocalAccessMiddleware
+        from .desktop.routes import build_desktop_router
+
+        token, ticket = desktop_access
+        application.add_middleware(LocalAccessMiddleware, token=token, ticket=ticket)
+        desktop_router = build_desktop_router(
+            engine,
+            selected_speech,
+            desktop_root or root,
+            token=token,
+        )
+        application.state.desktop_calls = desktop_router.desktop_calls
+        application.include_router(desktop_router)
+
+        @application.get("/api/desktop/account")
+        def account_status():
+            try:
+                return selected_provider.account()
+            except Exception:
+                return JSONResponse(
+                    {"detail": "Account unavailable. Check your connection or run setup again."},
+                    status_code=503,
+                )
+
     frontend = frontend_dir if frontend_dir is not None else root / "dist"
     if (frontend / "index.html").is_file():
         application.mount("/", FrontendFiles(directory=frontend), name="frontend")

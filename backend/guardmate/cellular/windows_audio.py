@@ -29,6 +29,19 @@ class AudioDevice:
     direction: Literal["input", "output"]
 
 
+@dataclass(frozen=True)
+class PairedAudioDevice:
+    """An operator-selected endpoint pin, including its native host API."""
+
+    id: int
+    name: str
+    direction: Literal["input", "output"]
+    host_api: str
+
+    def audio_device(self) -> AudioDevice:
+        return AudioDevice(self.id, self.name, self.direction)
+
+
 _WORD = ctypes.c_uint16
 _DWORD = ctypes.c_uint32
 _UINT_PTR = ctypes.c_size_t

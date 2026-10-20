@@ -79,6 +79,7 @@ class ManualCallRunner:
         hosted_consent: bool = False,
         emit: Callable[[dict], None] | None = None,
         admission_check: Callable[[], None] | None = None,
+        endpoint_check: Callable[[AudioDevice, AudioDevice], None] | None = None,
     ):
         if type(seconds) is not int or not 1 <= seconds <= 10:
             raise CallError("Choose a capture length from 1 to 10 seconds.")
@@ -86,9 +87,14 @@ class ManualCallRunner:
             raise CallError("Choose a manual test limit from 1 to 10 model turns.")
         if input_device.direction != "input" or output_device.direction != "output":
             raise CallError("Select a phone input and a phone output, not default devices.")
-        for device in (input_device, output_device):
-            if "vivo T2x 5G".casefold() not in device.name.casefold():
-                raise CallError("This manual experiment is limited to the tested vivo T2x 5G.")
+        if endpoint_check is not None:
+            # Desktop callers supply an explicit paired identity check; legacy CLI
+            # callers retain their original, deliberately narrow device restriction.
+            endpoint_check(input_device, output_device)
+        else:
+            for device in (input_device, output_device):
+                if "vivo T2x 5G".casefold() not in device.name.casefold():
+                    raise CallError("This manual experiment is limited to the tested vivo T2x 5G.")
         self.backend, self.audio = backend, audio
         self.input_device, self.output_device = input_device, output_device
         self.convert_reply = convert_reply

@@ -17,7 +17,7 @@ import sys
 import threading
 import wave
 
-from .windows_audio import AudioDevice, AudioError, validate_audio
+from .windows_audio import AudioDevice, AudioError, PairedAudioDevice, validate_audio
 
 HOST_API = "Windows WDM-KS"
 _UNSUPPORTED_FORMAT_CODES = {-9998, -9997, -9994, -9993}
@@ -86,6 +86,20 @@ class WindowsKernelAudio:
             raise AudioError("Select an audio device with the required direction.")
         if device not in self.devices():
             raise AudioError("The selected WDM-KS device changed or disconnected; enumerate again.")
+
+    def paired_devices(self) -> list[PairedAudioDevice]:
+        """Metadata only: enumerate selectable pins without constructing any audio stream."""
+        return [
+            PairedAudioDevice(device.id, device.name, device.direction, HOST_API)
+            for device in self.devices()
+        ]
+
+    def validate_paired(self, endpoint: PairedAudioDevice) -> AudioDevice:
+        if not isinstance(endpoint, PairedAudioDevice) or endpoint.host_api != HOST_API:
+            raise AudioError("Select a current Windows WDM-KS phone endpoint.")
+        if endpoint not in self.paired_devices():
+            raise AudioError("The selected phone endpoint changed or disconnected; inspect again.")
+        return endpoint.audio_device()
 
     def query_format(self, device: AudioDevice, sample_rate: int) -> bool:
         """Ask PortAudio about the application format; never start a stream."""

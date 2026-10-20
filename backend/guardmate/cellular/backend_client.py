@@ -77,6 +77,7 @@ class BackendClient:
         timeout: float = 60,
         *,
         connection_factory: Callable | None = None,
+        token: str | None = None,
     ):
         if type(base_url) is not str or _BASE_URL.fullmatch(base_url) is None:
             raise CallError("Use an HTTP backend on literal 127.0.0.1 or [::1], with no URL path.")
@@ -90,6 +91,14 @@ class BackendClient:
         if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
             raise CallError("Use a positive finite backend timeout.")
         self._host, self._port, self._timeout = parsed.hostname, port, timeout
+        if token is not None and (
+            not isinstance(token, str)
+            or not 24 <= len(token) <= 256
+            or not token.isascii()
+            or any(not (character.isalnum() or character in "-._~+/=") for character in token)
+        ):
+            raise CallError("Use a valid local desktop session token.")
+        self._token = token
         self._connection_factory = connection_factory or http.client.HTTPConnection
         self._started_ids: set[str] = set()
 
@@ -107,6 +116,8 @@ class BackendClient:
         limit = MAX_RESPONSE_BYTES if speech else MAX_JSON_BYTES
         body = audio
         headers = {"Accept": "audio/wav" if speech else "application/json"}
+        if self._token is not None:
+            headers["Authorization"] = f"Bearer {self._token}"
         if payload is not None:
             body = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
             headers["Content-Type"] = "application/json"

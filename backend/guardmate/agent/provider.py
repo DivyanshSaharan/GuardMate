@@ -42,8 +42,19 @@ class PlanProvider(Protocol):
 
 
 class TinkerProvider:
-    def __init__(self, store: ConversationStore, *, sampler_checkpoint: str | None = None):
+    def __init__(
+        self,
+        store: ConversationStore,
+        *,
+        sampler_checkpoint: str | None = None,
+        budget_microdollars: int = BUDGET_MICRODOLLARS,
+        budget_label: str = "conversation-test budget",
+    ):
+        if type(budget_microdollars) is not int or budget_microdollars <= 0:
+            raise ValueError("Use a positive integer allowance in microdollars.")
         self.store = store
+        self.budget_microdollars = budget_microdollars
+        self.budget_label = budget_label
         self._sampler_checkpoint = (
             validate_sampler_checkpoint(sampler_checkpoint)
             if sampler_checkpoint is not None
@@ -88,7 +99,7 @@ class TinkerProvider:
             )
             + checkpoint_message,
             reserved_usd=self.store.reserved_microdollars() / 1_000_000,
-            budget_usd=BUDGET_MICRODOLLARS / 1_000_000,
+            budget_usd=self.budget_microdollars / 1_000_000,
         )
 
     def generate(self, messages: list[dict[str, str]]) -> AgentPlan:
@@ -134,8 +145,11 @@ class TinkerProvider:
                 prompt = types.ModelInput.from_ints(tokens)
                 # Published Qwen3.5-4B uncached input/output rates; estimate, NOT a billing balance.
                 reservation = math.ceil(len(tokens) * 0.33 + MAX_OUTPUT_TOKENS * 1.005)
-                if not self.store.reserve(reservation, BUDGET_MICRODOLLARS):
-                    raise ModelUnavailable("The $0.25 conversation-test budget has been reached.")
+                if not self.store.reserve(reservation, self.budget_microdollars):
+                    raise ModelUnavailable(
+                        f"The ${self.budget_microdollars / 1_000_000:g} "
+                        f"{self.budget_label} has been reached."
+                    )
                 result = self._client.sample(
                     prompt=prompt,
                     num_samples=1,

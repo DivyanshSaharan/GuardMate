@@ -1,0 +1,48 @@
+.desktop-setup {
+  margin: 28px 0;
+  padding: 24px;
+}
+.desktop-setup h2,
+.desktop-setup h3 {
+  margin-bottom: 12px;
+}
+.desktop-setup p {
+  line-height: 1.6;
+  margin: 12px 0;
+}
+.desktop-call-panel {
+  border-top: 1px solid var(--border, #dde3df);
+  margin-top: 24px;
+  padding-top: 24px;
+}
+.desktop-call-panel > label {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0;
+}
+.desktop-call-panel input:not([type='checkbox']),
+.desktop-call-panel select,
+.desktop-call-panel textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccd6ce;
+  border-radius: 8px;
+  font: inherit;
+}
+.desktop-call-panel fieldset {
+  border: 1px solid #ccd6ce;
+  border-radius: 8px;
+  padding: 14px;
+  margin: 16px 0;
+}
+.desktop-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 0;
+  line-height: 1.5;
+}
+.desktop-consent input {
+  flex-shrink: 0;
+  margin-top: 5px;
+}
