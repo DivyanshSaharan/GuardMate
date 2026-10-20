@@ -1,9 +1,12 @@
+<img src="frontend/public/guardmate-logo.png" alt="GuardMate logo" width="88" height="88" />
+
 # GuardMate
 
-An AI delivery assistant for PG life: remember the handoff instructions, handle
-courier conversations, and ask the resident before changing the plan.
+A Windows AI voice assistant for PG deliveries: remember the handoff
+instructions, help with courier conversations, and ask the resident before
+changing the plan.
 
-**[Open GuardMate](https://guardmate.onrender.com)** · [Watch the demo](#demo) ·
+**[Website and Windows download](https://guardmate.onrender.com)** · [Watch the demo](#demo) ·
 [How it works](#how-i-built-it)
 
 Built for **Hacktoberfest 2026 · Build for a Friend**.
@@ -27,30 +30,33 @@ The call recording is shared with all speakers' permission.
 
 ## Using GuardMate
 
-The public website is live, and account-linked Windows installers are available
-for supervised testing. Google sign-in is required for downloads; viewing the
-website and its prepared conversation example is public.
+The [public website](https://guardmate.onrender.com) has a prepared conversation
+example and account-linked Windows downloads. The installed app runs the local
+dashboard, speech models and Phone Link integration. Render handles sign-in,
+downloads and AI requests; phone calls run on the Windows computer.
 
-1. **Visit** [GuardMate](https://guardmate.onrender.com). The public website has
-   a prepared conversation example; Google sign-in authorizes your download.
-2. **Install** your personalized `GuardMateSetup.exe`. Setup installs the
-   application and verifies its speech-model downloads. The initial installer
-   is unsigned, so Windows may show a publisher warning.
-3. **Connect** your Android phone through Microsoft Phone Link. Complete
-   Microsoft sign-in, Bluetooth pairing and call permissions when prompted.
-4. **Configure** the resident's name, PG details, guard-room directions, routine
-   and current delivery window in the local dashboard.
-5. **Select** the paired phone's input and output audio devices. Answer a
-   consenting call manually through Phone Link, then start assistance.
-6. **Review** each captured transcript, edit it if needed, and send it for an AI
-   reply. Choose **Play** separately to transmit the checked reply to the caller.
-7. **Decide** using **Approve once**, **Decline** or **Handle personally** when
-   resident input is required. Stop assistance and hang up through Phone Link.
+You need **Windows x64, an Android phone, Bluetooth and internet access**. Setup
+includes the application runtime and downloads verified speech models. You do
+not need Python, Node.js or your own Tinker API key.
 
-Requirements are Windows x64, an Android phone, Bluetooth and internet access.
-Users do not need Python, Node.js or their own Tinker key. The local dashboard
-also supports fictional text and browser-microphone role-play for practice.
-Pairing and phone permissions remain interactive.
+1. **Download** from the website after choosing **Continue with Google**. Viewing
+   the website and its prepared example needs no sign-in.
+2. **Install** your personalized `GuardMateSetup.exe`, then open GuardMate from
+   the Start Menu. The installer is unsigned, so Windows may show a publisher
+   warning.
+3. **Configure** the resident's name, PG details, guard-room directions, routine
+   and delivery window. Use **Practice** for fictional text or microphone
+   conversations before connecting a call.
+4. **Connect** your phone from **Phone & calls**. Complete Microsoft Phone Link
+   sign-in, Bluetooth pairing and phone permissions, then select the paired
+   phone's input/output devices and confirm the call checklist.
+5. **Answer** a consenting call yourself in Phone Link, then choose **Start
+   answered call**. Use **Capture 5-second caller turn**, review the transcript
+   and choose **Send reviewed text**. **Play latest reply to caller** is a
+   separate action.
+6. **Decide** using **Approve once**, **Decline** or **Handle personally** when
+   resident input is required. Use **Stop call assistant** to end assistance and
+   hang up through Phone Link yourself.
 
 GuardMate checks proposed replies against the saved instructions. Alternative
 locations need an expiring resident approval; payment, OTP, signature and
@@ -60,6 +66,18 @@ Each account receives a **$1 lifetime estimated AI allowance**, provided by the
 project owner. Reinstalling, downloading again or copying an account's installer
 uses that same account and allowance. Downloads can be revoked through the
 website. [Desktop usage and release guide](docs/desktop-release.md).
+
+### Updates and uninstall
+
+Choose **Quit GuardMate** before updating. Download a fresh account-linked
+installer from the website and run it to install the latest published version.
+Setup reuses valid speech models. Running setup again for an already installed
+version skips the application download when that version's executable exists.
+
+Uninstall through **Windows Settings → Apps → Installed apps → GuardMate →
+Uninstall**. This removes installed app versions, the Start Menu shortcut and
+local sign-in session. Your preferences, conversation history, speech models and
+cloud account allowance remain available for a later reinstall.
 
 ## How I built it
 
@@ -75,11 +93,17 @@ the application owns permissions and execution.
 
 ```mermaid
 flowchart LR
-    Input["Text or reviewed Whisper transcript"] --> Planner["Qwen planner · Tinker"]
-    Context["Saved instructions + conversation"] --> Planner
-    Planner --> Checks["Policy + permission checks"]
-    Checks --> Reply["Text reply or Piper audio"]
-    Checks --> Context
+    subgraph Windows["Windows app"]
+        Input["Text or reviewed Whisper transcript"] --> Engine["Conversation + policy engine"]
+        Local[("SQLite · instructions and history")] <--> Engine
+        Engine --> Reply["Checked reply → Piper → Phone Link"]
+    end
+    subgraph Cloud["Cloud services"]
+        Gateway["Render · FastAPI gateway"] <--> Ledger[("MongoDB · account allowance")]
+        Gateway --> Planner["Tinker · Qwen3.5-4B"]
+    end
+    Engine -->|Reviewed text and context| Gateway
+    Planner -->|Structured plan| Engine
 ```
 
 I separated the application into a Windows client and a cloud gateway.
@@ -133,20 +157,15 @@ On **October 4, 2026**, one consenting fictional **Windows Phone Link CLI call**
 operator reviewed transcripts, and an ambiguous final transcript was rejected
 instead of recording a completed delivery. [Call report](docs/live-cellular-test-2026-10-04.md).
 
-The **October 4, 2026 LoRA pilot** trained 40 fictional planner targets over 30 updates. On six
-development scenarios, planner agreement changed from **7/13 to 8/13**, while
-checked scenario success stayed **5/6**. This is a small development result, not
-field accuracy or a demonstrated functional improvement. Base Qwen remains the
-default; a trained checkpoint must be selected explicitly. The demo's fixed
-fine-tuned-model heading is not evidence of the runtime checkpoint.
-[Pilot report](docs/pilot-2026-10-04.md) · [Model selection](docs/model-selection.md).
+Release checks cover installer extraction, speech manifests, executable icons,
+package hashes, the public website and authenticated R2 runtime downloads. These
+checks do not establish packaged GUI call compatibility on every phone/computer.
 
-The earlier hosted prototype, documented on **October 13, 2026**, passed
-authentication, Atlas persistence and a synthetic English speech round-trip.
-Synthesis took about **14.3 seconds** and transcription **14.9 seconds** on that
-Render instance. Those historical measurements describe the previous hosted
-speech path, not the local Windows package or latency guarantees.
-[Deployment notes](docs/render-deployment.md#historical-hosted-prototype).
+A small **LoRA pilot** explored planner agreement on fictional development
+scenarios; it did not demonstrate field accuracy or a functional improvement.
+The cloud gateway uses **base Qwen3.5-4B**, and the dashboard displays the current
+model connection. [Pilot report](docs/pilot-2026-10-04.md) ·
+[Model selection](docs/model-selection.md).
 
 ## Privacy and current limits
 
@@ -173,14 +192,15 @@ device compatibility. [Speech processing and licences](docs/browser-voice.md).
 
 ## Explore the project
 
-- [Desktop release](docs/desktop-release.md): installation, account downloads,
-  Phone Link use and release publishing.
-- [Local development](docs/local-development.md): running the source app
+- **Desktop release:** [installation and publishing](docs/desktop-release.md),
+  account downloads and Phone Link use.
+- **Local development:** [running the source app](docs/local-development.md)
   and verification commands.
-- [Render and Atlas deployment](docs/render-deployment.md): hosting and server
+- **Render and Atlas:** [deployment](docs/render-deployment.md), hosting and server
   configuration.
-- [Browser voice](docs/browser-voice.md), [cellular calls](docs/manual-cellular-call.md)
+- **Speech:** [browser voice](docs/browser-voice.md), [cellular calls](docs/manual-cellular-call.md)
   and [automatic turn-taking](docs/automatic-cellular-call.md).
-- [Training](docs/training.md) and [speech replay](docs/speech-replay.md): planner
+- **Experiments:** [training](docs/training.md) and [speech replay](docs/speech-replay.md) for planner
   experiments and audio evaluation.
-- [DEV submission](docs/dev-submission.md) and [submission checklist](docs/submission-checklist.md).
+- **Submission:** [DEV write-up](docs/dev-submission.md) and [checklist](docs/submission-checklist.md).
+- **Branding:** [logo source and icon exports](docs/branding.md).

@@ -1,9 +1,9 @@
 # Windows desktop and cloud gateway
 
-This branch implements the Windows installer and public cloud gateway. Public
-downloads require configured Google OAuth, private R2 artifacts and a matching
-deployed gateway. The previous hosted prototype remains unchanged until deployment.
-The common bootstrap template is not a usable account-bound installer.
+GuardMate's public website and account-linked Windows downloads are live at
+https://guardmate.onrender.com. Render's release metadata selects the current
+runtime and installer template stored privately in R2. Google sign-in creates a
+personalized installer; the common bootstrap template cannot be installed alone.
 
 ## Responsibilities
 
