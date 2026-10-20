@@ -1,6 +1,22 @@
+.desktop-shell .header {
+  gap: 32px;
+}
+.desktop-shell .header nav {
+  gap: 24px;
+}
+.desktop-shell .hero {
+  padding: 32px 0 28px;
+}
+.desktop-shell .hero h1 {
+  font-size: 34px;
+  letter-spacing: -1px;
+  margin: 12px 0;
+}
 .desktop-setup {
   margin: 28px 0;
   padding: 24px;
+  min-width: 0;
+  scroll-margin-top: 24px;
 }
 .desktop-setup h2,
 .desktop-setup h3 {
@@ -10,20 +26,98 @@
   line-height: 1.6;
   margin: 12px 0;
 }
+.desktop-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px 20px;
+}
+.desktop-status {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: #f4f7ef;
+  color: #4a6b4a;
+  font-size: 11px;
+}
+.desktop-readiness {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 20px;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfcf9;
+  list-style: none;
+}
+.desktop-readiness li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.desktop-readiness a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.desktop-readiness li > span:first-child {
+  flex: 0 0 72px;
+  color: #886329;
+  font-weight: 650;
+}
+.desktop-readiness li[data-ready='true'] > span:first-child {
+  color: var(--green);
+}
+.desktop-setup .lab-actions {
+  gap: 10px 14px;
+}
+.desktop-setup .button,
+.desktop-setup .text-button {
+  min-width: 0;
+  min-height: 40px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
 .desktop-call-panel {
   border-top: 1px solid var(--border, #dde3df);
   margin-top: 24px;
   padding-top: 24px;
 }
-.desktop-call-panel > label {
+.desktop-call-panel > label,
+.desktop-device-grid > label,
+.desktop-audio-grid > label {
   display: grid;
   gap: 6px;
   margin: 14px 0;
+  min-width: 0;
+}
+.desktop-device-grid,
+.desktop-audio-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 18px;
+}
+.desktop-discovery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+.desktop-discovery > label {
+  flex: 1 1 260px;
+  min-width: 0;
 }
 .desktop-call-panel input:not([type='checkbox']),
 .desktop-call-panel select,
 .desktop-call-panel textarea {
   width: 100%;
+  min-width: 0;
+  margin-top: 0;
   padding: 10px;
   border: 1px solid #ccd6ce;
   border-radius: 8px;
@@ -34,15 +128,88 @@
   border-radius: 8px;
   padding: 14px;
   margin: 16px 0;
+  min-width: 0;
+}
+.desktop-call-panel legend {
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.desktop-call-setup {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 18px 0;
+  padding: 0 16px;
+}
+.desktop-call-setup > summary {
+  cursor: pointer;
+  padding: 16px 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.desktop-call-setup[open] > summary {
+  border-bottom: 1px solid var(--border);
 }
 .desktop-consent {
-  display: flex;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
   align-items: flex-start;
   gap: 10px;
   margin: 12px 0;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.6;
 }
-.desktop-consent input {
-  flex-shrink: 0;
-  margin-top: 5px;
+.desktop-consent input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  margin: 1px 0 0;
+  accent-color: var(--green);
+}
+.desktop-consent > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .desktop-shell .header {
+    height: auto;
+    min-height: 88px;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 18px 0 12px;
+  }
+  .desktop-shell .header nav {
+    flex-basis: 100%;
+    max-width: none;
+    height: auto;
+    justify-content: flex-start;
+    gap: 14px 22px;
+    font-size: 11px;
+  }
+  .desktop-shell .header nav a {
+    padding: 5px 0;
+  }
+  .desktop-shell .hero h1 {
+    font-size: 29px;
+  }
+  .desktop-setup {
+    padding: 20px;
+  }
+  .desktop-device-grid,
+  .desktop-audio-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .desktop-setup .lab-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 520px) {
+  .desktop-readiness {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .desktop-call-setup {
+    padding: 0 12px;
+  }
 }

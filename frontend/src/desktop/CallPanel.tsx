@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { request } from '../api'
 import { ResidentControls } from '../agent/ResidentControls'
 import type { Conversation, ResidentDecision } from '../agent/types'
@@ -40,6 +40,8 @@ export function CallPanel({ status }: { status: DesktopStatus }) {
   const [label, setLabel] = useState('')
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({})
   const [call, setCall] = useState<CallState | null>(null)
+  const [callLoaded, setCallLoaded] = useState(false)
+  const callRevision = useRef(0)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [draft, setDraft] = useState('')
@@ -47,8 +49,28 @@ export function CallPanel({ status }: { status: DesktopStatus }) {
     setDraft(call?.draft ?? '')
   }, [call?.draft])
   useEffect(() => {
+    let cancelled = false
+    const revision = callRevision.current
+    void desktopRequest<CallState>('/call')
+      .then((current) => {
+        if (cancelled || revision !== callRevision.current) return
+        setCall(current)
+        setCallLoaded(true)
+      })
+      .catch(() => {
+        if (!cancelled && revision === callRevision.current)
+          setError(
+            'Call status is unavailable. Refresh this page before using the call assistant.',
+          )
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  useEffect(() => {
     if (!pending && (!call?.conversation || call.stopped)) return
     const timer = setInterval(() => {
+      callRevision.current++
       void desktopRequest<CallState>('/call')
         .then(setCall)
         .catch(() => {
@@ -60,7 +82,7 @@ export function CallPanel({ status }: { status: DesktopStatus }) {
     return () => clearInterval(timer)
   }, [pending, call?.conversation?.id, call?.stopped])
 
-  const busy = pending || !!call?.busy
+  const busy = !callLoaded || pending || !!call?.busy
   const active = !!call?.conversation && !call.stopped
   const paused = call?.conversation?.status !== 'active'
   const ready =
@@ -85,10 +107,12 @@ export function CallPanel({ status }: { status: DesktopStatus }) {
   )
 
   async function perform(path: string, body: unknown = {}) {
+    callRevision.current++
     setPending(true)
     setError('')
     try {
       setCall(await desktopRequest<CallState>(`/call/${path}`, body))
+      setCallLoaded(true)
       return true
     } catch (failure) {
       setError(
@@ -129,8 +153,10 @@ export function CallPanel({ status }: { status: DesktopStatus }) {
   }
 
   async function stop() {
+    callRevision.current++
     try {
       setCall(await desktopRequest<CallState>('/call/stop', {}))
+      setCallLoaded(true)
     } catch {
       setError(
         'Stop could not be confirmed. End the physical call in Phone Link.',
@@ -141,6 +167,7 @@ export function CallPanel({ status }: { status: DesktopStatus }) {
   async function decide(decision: ResidentDecision) {
     const session = call?.conversation
     if (!session || busy) return false
+    callRevision.current++
     setPending(true)
     try {
       await request<Conversation>(`/conversations/${session.id}/resident`, {
@@ -170,94 +197,111 @@ export function CallPanel({ status }: { status: DesktopStatus }) {
         playing a reply are separate actions. There is no automatic answering or
         hangup.
       </p>
+      {!callLoaded && !error && (
+        <p role="status">Checking local call status…</p>
+      )}
       {!ready && (
         <p role="status">
-          Save PG preferences, enable a delivery window, configure the model and
-          speech, and pair Phone Link. Then refresh desktop readiness above.
+          Complete the items marked above before starting. You can also try a
+          text conversation below while you finish phone setup.
         </p>
       )}
-      <label>
-        Paired phone name
-        <input
-          value={phoneName}
-          maxLength={120}
-          disabled={active || busy}
-          placeholder="Name shown in the phone audio endpoints"
-          onChange={(event) => {
-            setPhoneName(event.target.value)
-            setInput('')
-            setOutput('')
-          }}
-        />
-      </label>
-      <button
-        className="button secondary"
-        disabled={busy || active}
-        onClick={() => void scan()}
-      >
-        Inspect phone audio endpoints
-      </button>
-      <p className="muted">
-        Inspection lists device metadata only. It does not open audio, verify
-        pairing or place a call. Match both endpoints to the paired phone name;
-        there is no laptop fallback.
-      </p>
-      {(['input', 'output'] as const).map((direction) => (
-        <label key={direction}>
-          {direction === 'input'
-            ? 'Phone input (caller audio)'
-            : 'Phone output (reply to caller)'}
-          <select
-            value={direction === 'input' ? input : output}
-            disabled={active || busy}
-            onChange={(event) =>
-              direction === 'input'
-                ? setInput(event.target.value)
-                : setOutput(event.target.value)
-            }
+      <details className="desktop-call-setup">
+        <summary>Configure phone audio and call consent</summary>
+        <div className="desktop-device-grid">
+          <label>
+            Paired phone name
+            <input
+              value={phoneName}
+              maxLength={120}
+              disabled={active || busy}
+              placeholder="Name shown in the phone audio endpoints"
+              onChange={(event) => {
+                setPhoneName(event.target.value)
+                setInput('')
+                setOutput('')
+              }}
+            />
+          </label>
+          <label>
+            Call label
+            <input
+              value={label}
+              maxLength={80}
+              disabled={active || busy}
+              placeholder="For example: Fictional courier call"
+              onChange={(event) => setLabel(event.target.value)}
+            />
+          </label>
+        </div>
+        <div className="desktop-discovery">
+          <button
+            className="button secondary"
+            disabled={busy || active}
+            onClick={() => void scan()}
           >
-            <option value="">Select the paired phone endpoint</option>
-            {phoneDevices
-              .filter((device) => device.direction === direction)
-              .map((device) => (
-                <option key={device.id} value={device.id}>
-                  {device.name} · {device.host_api} · {device.id}
-                </option>
-              ))}
-          </select>
-        </label>
-      ))}
-      <label>
-        Call label
-        <input
-          value={label}
-          maxLength={80}
-          disabled={active || busy}
-          placeholder="For example: Fictional courier call"
-          onChange={(event) => setLabel(event.target.value)}
-        />
-      </label>
-      {!active && (
-        <fieldset>
-          <legend>Confirm this answered call</legend>
-          {confirmations.map(([key, text]) => (
-            <label key={key} className="desktop-consent">
-              <input
-                type="checkbox"
-                checked={!!confirmed[key]}
-                disabled={busy}
+            Inspect phone audio endpoints
+          </button>
+          <p className="muted">
+            Lists audio devices without recording or placing a call. Select both
+            endpoints for your paired phone.
+          </p>
+        </div>
+        {devices.length > 0 && phoneDevices.length === 0 && (
+          <p className="muted" role="status">
+            Enter at least three characters of the phone name shown in Windows
+            audio settings to find its endpoints.
+          </p>
+        )}
+        <div className="desktop-audio-grid">
+          {(['input', 'output'] as const).map((direction) => (
+            <label key={direction}>
+              {direction === 'input'
+                ? 'Phone input (caller audio)'
+                : 'Phone output (reply to caller)'}
+              <select
+                value={direction === 'input' ? input : output}
+                disabled={active || busy}
                 onChange={(event) =>
-                  setConfirmed((current) => ({
-                    ...current,
-                    [key]: event.target.checked,
-                  }))
+                  direction === 'input'
+                    ? setInput(event.target.value)
+                    : setOutput(event.target.value)
                 }
-              />
-              {text}
+              >
+                <option value="">Select the paired phone endpoint</option>
+                {phoneDevices
+                  .filter((device) => device.direction === direction)
+                  .map((device) => (
+                    <option key={device.id} value={device.id}>
+                      {device.name} · {device.host_api} · {device.id}
+                    </option>
+                  ))}
+              </select>
             </label>
           ))}
-        </fieldset>
-      )}
+        </div>
+        {!active && (
+          <fieldset>
+            <legend>Confirm this answered call</legend>
+            {confirmations.map(([key, text]) => (
+              <label key={key} className="desktop-consent">
+                <input
+                  type="checkbox"
+                  checked={!!confirmed[key]}
+                  disabled={busy}
+                  onChange={(event) =>
+                    setConfirmed((current) => ({
+                      ...current,
+                      [key]: event.target.checked,
+                    }))
+                  }
+                />
+                <span>{text}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+      </details>
       <div className="lab-actions">
         <button
           className="button primary"

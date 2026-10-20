@@ -2,7 +2,11 @@ import { memo } from 'react'
 import { formatDate } from '../lib/presentation'
 import { Icon } from './Icon'
 
-export const Header = memo(function Header() {
+export const Header = memo(function Header({
+  desktop = false,
+}: {
+  desktop?: boolean
+}) {
   return (
     <header className="header">
       <a className="brand" href="#today" aria-label="GuardMate home">
@@ -18,7 +22,8 @@ export const Header = memo(function Header() {
           Today
         </a>
         <a href="#preferences">Your preferences</a>
-        <a href="#conversation">Test agent</a>
+        {desktop && <a href="#desktop">Phone & calls</a>}
+        <a href="#conversation">{desktop ? 'Practice' : 'Test agent'}</a>
       </nav>
       <span className="private-label">
         <Icon name="shield" size={15} /> Saved on your device
@@ -27,44 +32,68 @@ export const Header = memo(function Header() {
   )
 })
 
-export const Hero = memo(function Hero() {
+export const Hero = memo(function Hero({
+  desktop = false,
+}: {
+  desktop?: boolean
+}) {
   return (
     <>
       <section className="hero">
         <div>
           <div className="eyebrow">
-            <span className="small-line" /> A LITTLE BACKUP FOR PG LIFE
+            <span className="small-line" />
+            {desktop
+              ? 'YOUR DELIVERY ASSISTANT'
+              : 'A LITTLE BACKUP FOR PG LIFE'}
           </div>
           <h1>
-            Your day goes on.
-            <br />
-            <span>Your parcels have a plan.</span>
+            {desktop ? (
+              <>
+                Your delivery dashboard<span className="brand-dot">.</span>
+              </>
+            ) : (
+              <>
+                Your day goes on.
+                <br />
+                <span>Your parcels have a plan.</span>
+              </>
+            )}
           </h1>
           <p>
-            One place for the instructions your delivery assistant will follow.
-            <br className="desktop-break" /> Set your routine, then get back to
-            your day.
+            {desktop ? (
+              'Set your instructions and today’s delivery window, then connect your phone.'
+            ) : (
+              <>
+                One place for the instructions your delivery assistant will
+                follow.
+                <br className="desktop-break" /> Set your routine, then get back
+                to your day.
+              </>
+            )}
           </p>
         </div>
-        <div className="parcel-illustration" aria-hidden="true">
-          <div className="illustration-orbit" />
-          <div className="parcel">
-            <div className="parcel-tape" />
-            <span className="parcel-label">
-              <Icon name="box" size={27} />
-              <span>
-                HANDLE
-                <br />
-                WITH CARE
+        {!desktop && (
+          <div className="parcel-illustration" aria-hidden="true">
+            <div className="illustration-orbit" />
+            <div className="parcel">
+              <div className="parcel-tape" />
+              <span className="parcel-label">
+                <Icon name="box" size={27} />
+                <span>
+                  HANDLE
+                  <br />
+                  WITH CARE
+                </span>
               </span>
-            </span>
-            <span className="parcel-number">GM / 001</span>
+              <span className="parcel-number">GM / 001</span>
+            </div>
+            <div className="illustration-check">
+              <Icon name="check" size={29} />
+            </div>
+            <span className="illustration-caption">A safe place to land.</span>
           </div>
-          <div className="illustration-check">
-            <Icon name="check" size={29} />
-          </div>
-          <span className="illustration-caption">A safe place to land.</span>
-        </div>
+        )}
       </section>
     </>
   )

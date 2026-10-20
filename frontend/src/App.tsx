@@ -21,11 +21,10 @@ function DashboardScreen({ desktop = false }: { desktop?: boolean }) {
   const disabled = dashboard === null || !connected
   const ready = context?.setup_complete ?? false
   return (
-    <div className="app-shell">
-      <Header />
+    <div className={`app-shell${desktop ? ' desktop-shell' : ''}`}>
+      <Header desktop={desktop} />
       <main id="today">
-        <Hero />
-        {desktop && <DesktopSetup />}
+        <Hero desktop={desktop} />
         <TodayHeading localDate={context?.local_date} />
         <section className="today-grid" aria-label="Today's delivery settings">
           <AvailabilityCard
@@ -59,6 +58,12 @@ function DashboardScreen({ desktop = false }: { desktop?: boolean }) {
           pending={pending.profile}
           onSave={saveProfile}
         />
+        {desktop && (
+          <DesktopSetup
+            setupComplete={ready}
+            deliveryModeActive={context?.delivery_mode_active ?? false}
+          />
+        )}
         <ConversationLab />
       </main>
       <Footer />

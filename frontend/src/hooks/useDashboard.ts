@@ -146,7 +146,7 @@ export function useDashboard() {
         '/delivery-mode',
         enabled ? { enabled, expires_at: expiresAt } : { enabled },
         enabled
-          ? 'Delivery window saved. Voice handling is not connected yet.'
+          ? 'Delivery window enabled. Your saved instructions are ready for this window.'
           : 'Delivery mode is off.',
       ),
     [mutate],
